@@ -443,7 +443,16 @@ async function postChangeNotification(changes) {
 }
 
 // --- Sync values and notify ---
+let lastSyncTime = 0;
 async function syncAndNotify() {
+  // Prevent double-sync within 5 minutes
+  const now = Date.now();
+  if (now - lastSyncTime < 5 * 60 * 1000) {
+    console.log("⏭️ Skipping sync — ran less than 5 minutes ago");
+    return false;
+  }
+  lastSyncTime = now;
+
   const { success, changes } = await scrapeValues();
   if (success) {
     items = loadItems();
@@ -461,7 +470,7 @@ cron.schedule("0 * * * *", async () => {
 client.on("ready", async () => {
   console.log(`✅ Logged in as ${client.user.tag}`);
 
-  // Sync on startup (no notification on first boot)
+  // Sync on startup (skip notification — just load fresh data)
   console.log("🚀 Running initial value sync...");
   const { success } = await scrapeValues();
   if (success) {

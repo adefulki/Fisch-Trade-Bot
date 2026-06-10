@@ -231,7 +231,7 @@ function formatChangesMessage(changes) {
   if (totalChanges === 0) return null;
 
   const lines = [];
-  lines.push(`📢 **FISCH VALUE UPDATE** — ${new Date().toLocaleString()}`);
+  lines.push(`📢 **FISCH VALUE UPDATE** — ${new Date().toLocaleString("en-GB", { timeZone: "Asia/Jakarta", day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false })} WIB`);
   lines.push(``);
 
   // New items
