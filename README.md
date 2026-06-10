@@ -1,6 +1,6 @@
 # 🐟 Fisch Trade Assistant Bot
 
-A Discord bot that analyzes trades for the Roblox game **Fisch** using live market data from [game.guide](https://www.game.guide/fisch-value-list). Combines TrueVal, Trade Hub, Proto, Demand, and Trend into smart adjusted valuations.
+A Discord bot that analyzes trades for the Roblox game **Fisch** using live market data from [game.guide](https://www.game.guide/fisch-value-list). Combines TrueVal, Trade Hub, Proto, Demand, and Trend into smart adjusted valuations powered by AI with local fallback.
 
 ---
 
@@ -15,128 +15,133 @@ Analyze a trade between two players.
 | `your_offer` | ✅ | Items you are offering (comma-separated) |
 | `their_offer` | ✅ | Items they are offering (comma-separated) |
 
-**Example:**
+**Examples:**
 ```
-/trade your_offer: 2 Nocturne, Scarwing their_offer: Evangeline x2
-```
-
-**Output:**
-```
-⚖️ FISCH TRADE ASSISTANT
-
-📦 YOUR OFFER
-• Nocturne ×2 — S$ 4.00M → Adj: S$ 8.80M (TrueVal | Demand: High | ➡️ Stable)
-• Scarwing — S$ 2.50M → Adj: S$ 2.75M (TrueVal | Demand: High | ➡️ Stable)
-Total Adjusted Value: S$ 11.55M
-
-🎁 THEIR OFFER
-• Evangeline ×2 — S$ 4.50M → Adj: S$ 9.90M (TrueVal | Demand: High | ➡️ Stable)
-Total Adjusted Value: S$ 9.90M
-
-━━━━━━━━━━━━━━━━━━━━━━━━
-📊 VERDICT: 🔴 LOSS 🔴
-
-📝 RECOMMENDATION:
-You're underpaid by ~S$ 1.65M. Ask them to add more to make it fair.
-💡 Ask them to add: The Reaper (S$ 1.76M) (≈ S$ 1.65M needed).
+/trade your_offer: 2 Nocturne, Scarwing their_offer: Evangeline
+/trade your_offer: 3 c3, stb their_offer: 2 c4
+/trade your_offer: slime booth, eye seraph their_offer: crev
 ```
 
 ---
 
 ### `/value`
-Look up a single item's value and stats.
+Look up a single item's full stats and adjusted value.
 
-**Parameters:**
-| Parameter | Required | Description |
-|-----------|----------|-------------|
-| `item` | ✅ | Item name to look up |
-
-**Example:**
+**Examples:**
 ```
 /value item: Evangeline
-```
-
-**Output:**
-```
-🔍 Evangeline
-
-TrueVal: S$ 4,500,000
-Trade Hub: S$ 4,600,000
-Proto: 1,500
-Demand: High
-Trend: ➡️ Stable
-
-💰 Adjusted Value: S$ 4.95M (TrueVal × demand × trend)
+/value item: c3
+/value item: slime booth
 ```
 
 ---
 
 ### `/sync`
-Manually sync item values from game.guide. Values auto-sync every 1 hour.
-
-**Parameters:** None
-
-**Example:**
-```
-/sync
-```
-
-**Output:**
-```
-✅ Values synced! Loaded 1050 items.
-```
+Manually sync item values from game.guide (values also auto-update every hour).
 
 ---
 
-## 🎯 Quantity Support
+### `/help`
+Show a quick usage guide inside Discord (only visible to you).
 
-You can specify multiple quantities of the same item:
+---
 
-| Format | Example |
-|--------|---------|
-| Number before name | `2 Nocturne` |
-| `Nx` before name | `3x Scarwing` |
-| `xN` after name | `Evangeline x2` |
-| No number (default 1) | `Curse IV` |
+## 🔢 Quantity Format
 
-Max quantity: 1,000,000
+Quantity goes on the **left side only**:
+
+| Format | Example | Result |
+|--------|---------|--------|
+| Number before name | `3 Nocturne` | 3× Nocturne |
+| Nx before name | `3x Scarwing` | 3× Scarwing |
+| With aliases | `4 c4` | 4× Curse IV |
+| With aliases | `3 c3` | 3× Curse III |
+| No number (default 1) | `Evangeline` | 1× Evangeline |
+
+Separate multiple items with commas:
+```
+3 c3, 2 Nocturne, Scarwing
+```
+
+Max quantity per item: 1,000,000
 
 ---
 
 ## 🔍 Flexible Item Names
 
-The bot uses smart fuzzy matching. You don't need to type exact names:
+The bot uses smart fuzzy matching. You don't need exact names.
 
+### Aliases (shorthand)
+
+| Shorthand | Matches |
+|-----------|---------|
+| `c1` | Curse I |
+| `c2` | Curse II |
+| `c3` or `c 3` | Curse III |
+| `c4` or `c 4` | Curse IV |
+| `stb` | Slime Trade Booth |
+| `rb` | Seraphic Rainbow |
+
+### Shortened names
 | You type | Matches |
 |----------|---------|
-| `slime booth` | Slime Trade Booth |
 | `evan` | Evangeline |
 | `noc` | Nocturne |
 | `reaper` | The Reaper |
-| `rb sera` | Seraphic Rainbow |
-| `crev` | Cthulu's Revenge |
-| `pheaven` | Puff of Heaven |
+| `cuddly` | Cuddly Claw |
+| `fuchsia` | Fuchsia Fidelity |
+| `malev` | Malevolence |
+| `cathedral` | Cathedral Booth |
+
+### Partial words (unordered)
+| You type | Matches |
+|----------|---------|
+| `slime booth` | Slime Trade Booth |
 | `heavy glory` | Heavyblade of Glory |
-| `curse 4` | Curse IV |
-| `pearsickle` (typo) | Pearsicle |
-| `dutchmans` | Dutchman's Penance |
+| `eye seraph` | Eye of Seraph |
+| `purr rebel` | Purr of Rebellion |
+| `black com` | Black Comet |
+| `rb sera` | Seraphic Rainbow |
 | `blk comet` | Black Comet |
 | `cy demo` | Cyanic Demonride |
-| `purr rebel` | Purr of Rebellion |
-| `treaper` | The Reaper |
-| `eye seraph` | Eye of Seraph |
 
-**Matching methods (in priority order):**
-1. Exact match
-2. Exact match (ignoring apostrophes/dashes)
-3. All query words found in item name
-4. Initials abbreviation (e.g. `stb` → Slime Trade Booth)
-5. Substring match
-6. Word-start sequential (e.g. `cya demon` → Cyanic Demonride)
-7. Word-start unordered with short abbreviations (e.g. `rb sera`)
-8. Single word prefix (e.g. `evan` → Evangeline)
-9. Condensed multi-word (e.g. `crev` → Cthulu's Revenge)
-10. Typo tolerance (Levenshtein distance)
+### Condensed names (multi-word abbreviation)
+| You type | Matches |
+|----------|---------|
+| `crev` | Cthulu's Revenge (**C**thulu's **Rev**enge) |
+| `treaper` | The Reaper (**T**he **Reaper**) |
+| `pheaven` | Puff of Heaven (**P**uff **Heaven**) |
+| `cdemon` | Cyanic Demonride (**C**yanic **Demon**ride) |
+
+### Without apostrophes
+| You type | Matches |
+|----------|---------|
+| `dutchmans` | Dutchman's Penance |
+| `ravens hush` | Raven's Hush |
+| `sanzus embrace` | Sanzu's Embrace |
+| `cthulu revenge` | Cthulu's Revenge |
+
+### Typos (auto-corrected)
+| You type | Matches |
+|----------|---------|
+| `pearsickle` | Pearsicle |
+| `scarwng` | Scarwing |
+| `evangline` | Evangeline |
+| `nocturn` | Nocturne |
+
+### Matching priority order
+1. Aliases (`c3`, `stb`, `rb`)
+2. Number → Roman numeral conversion (`curse 3` → `curse iii`)
+3. Exact match
+4. Exact match (ignoring apostrophes/dashes)
+5. All query words found in item name
+6. Initials abbreviation
+7. Substring match
+8. Word-start sequential match
+9. Word-start unordered with short abbreviations
+10. Single word prefix match
+11. Condensed multi-word abbreviation
+12. Typo tolerance (Levenshtein distance)
 
 ---
 
@@ -170,6 +175,10 @@ Adjusted Value = Base Value × Demand Multiplier × Trend Multiplier
 | Dropping 📉 | ×0.88 | -12% |
 | Unstable ⚡ | ×0.95 | -5% |
 
+**Output format:**
+- If adjusted = raw: shows `S$ 400.0K`
+- If adjusted ≠ raw: shows `S$ 400.0K → Adj: S$ 360.0K`
+
 ---
 
 ## 📊 Verdict Scale
@@ -182,18 +191,20 @@ Adjusted Value = Base Value × Demand Multiplier × Trend Multiplier
 | 🔴 **LOSS** | Your offer 15-40% more | Ask them to add |
 | 🔴🔴 **BIG LOSS** | Your offer > 40% more | Decline |
 
+**Item suggestions:**
+- LOSS/BIG LOSS → Bot suggests specific items they should add to make it fair
+- FAIR → Bot suggests items they could add to make it a WIN for you
+
 ---
 
 ## 🤖 AI vs Local Analysis
-
-The bot has two analysis modes:
 
 | Mode | When | Features |
 |------|------|----------|
 | **AI (Gemini)** | When API quota available | Nuanced context-aware analysis |
 | **Local** | When AI quota exceeded | Formula-based with item suggestions |
 
-The bot auto-switches to local mode when hitting rate limits, and retries AI after cooldown. Users see a small footer `⚡ Analyzed locally` when in local mode.
+Auto-switches to local mode on rate limits. Users see `⚡ Analyzed locally` footer.
 
 ---
 
@@ -203,6 +214,7 @@ The bot auto-switches to local mode when hitting rate limits, and retries AI aft
 - Also syncs on bot startup
 - Use `/sync` for manual refresh
 - Falls back to cached data if scrape fails
+- Scrapes 1000+ items including boats, rods, bobbers, gliders, booths, lanterns, halos
 
 ---
 
@@ -223,7 +235,13 @@ The bot auto-switches to local mode when hitting rate limits, and retries AI aft
    npm start         # Start the bot
    ```
 
-**Keep running 24/7 with PM2:**
+**Deploy on Railway (24/7):**
+1. Push code to GitHub (without `.env`)
+2. Connect repo to [railway.app](https://railway.app)
+3. Add environment variables in Railway settings
+4. Auto-deploys on every push
+
+**Or keep running locally with PM2:**
 ```bash
 npm install -g pm2
 pm2 start index.js --name fisch-bot
