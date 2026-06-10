@@ -2,7 +2,7 @@ require("dotenv").config();
 const { Client, GatewayIntentBits } = require("discord.js");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const cron = require("node-cron");
-const { scrapeValues, loadItems } = require("./scraper");
+const { scrapeValues, loadItems, formatChangesMessage } = require("./scraper");
 const { analyzeTradeLocally } = require("./analyzer");
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
@@ -393,21 +393,52 @@ async function analyzeTrade(leftItems, rightItems) {
   }
 }
 
+// --- Post value change notifications to a channel ---
+async function postChangeNotification(changes) {
+  if (!changes) return;
+  const channelId = process.env.NOTIFICATION_CHANNEL_ID;
+  if (!channelId) return;
+
+  const messages = formatChangesMessage(changes);
+  if (!messages) return;
+
+  try {
+    const channel = await client.channels.fetch(channelId);
+    if (!channel) {
+      console.error("⚠️ Notification channel not found:", channelId);
+      return;
+    }
+    for (const msg of messages) {
+      await channel.send(msg);
+    }
+    console.log("📢 Posted value change notification");
+  } catch (error) {
+    console.error("⚠️ Failed to post notification:", error.message);
+  }
+}
+
+// --- Sync values and notify ---
+async function syncAndNotify() {
+  const { success, changes } = await scrapeValues();
+  if (success) {
+    items = loadItems();
+    await postChangeNotification(changes);
+  }
+  return success;
+}
+
 // --- Cron Job: Sync values every 1 hour ---
 cron.schedule("0 * * * *", async () => {
   console.log("⏰ Cron triggered: syncing values...");
-  const success = await scrapeValues();
-  if (success) {
-    items = loadItems();
-  }
+  await syncAndNotify();
 });
 
 client.on("ready", async () => {
   console.log(`✅ Logged in as ${client.user.tag}`);
 
-  // Sync on startup
+  // Sync on startup (no notification on first boot)
   console.log("🚀 Running initial value sync...");
-  const success = await scrapeValues();
+  const { success } = await scrapeValues();
   if (success) {
     items = loadItems();
   }
@@ -453,10 +484,12 @@ client.on("interactionCreate", async (interaction) => {
   // Manual sync command
   if (interaction.commandName === "sync") {
     await interaction.deferReply({ ephemeral: true });
-    const success = await scrapeValues();
+    const { success, changes } = await scrapeValues();
     if (success) {
       items = loadItems();
-      await interaction.editReply(`✅ Values synced! Loaded ${items.length} items.`);
+      await postChangeNotification(changes);
+      const totalChanges = changes ? (changes.updated.length + changes.added.length + changes.removed.length) : 0;
+      await interaction.editReply(`✅ Values synced! Loaded ${items.length} items. ${totalChanges > 0 ? `(${totalChanges} changes detected)` : "(no changes)"}`);
     } else {
       await interaction.editReply("❌ Sync failed. Check bot logs for details.");
     }
