@@ -14,6 +14,42 @@ let items = loadItems();
 // Track if AI is available (disable temporarily on quota errors)
 let aiDisabledUntil = 0;
 
+// Common aliases and shorthand mappings for Fisch items
+const ALIASES = {
+  "c1": "Curse I",
+  "c2": "Curse II",
+  "c3": "Curse III",
+  "c 3": "Curse III",
+  "c4": "Curse IV",
+  "c 4": "Curse IV",
+  "curse 1": "Curse I",
+  "curse 2": "Curse II",
+  "curse 3": "Curse III",
+  "curse 4": "Curse IV",
+  "stb": "Slime Trade Booth",
+  "rb": "Seraphic Rainbow",
+};
+
+// Normalize input: expand aliases and convert number suffixes to roman numerals
+function normalizeQuery(q) {
+  // Check alias table first
+  const aliased = ALIASES[q.toLowerCase().trim()];
+  if (aliased) return aliased.toLowerCase();
+
+  // Convert trailing numbers to roman numerals for "curse"-like items
+  // e.g. "curse 3" → "curse iii", "c3" handled by alias above
+  const romanMap = { "1": "i", "2": "ii", "3": "iii", "4": "iv", "5": "v", "6": "vi", "7": "vii", "8": "viii", "9": "ix", "10": "x" };
+  const trailingNum = q.match(/^(.+?)\s*(\d+)$/);
+  if (trailingNum) {
+    const roman = romanMap[trailingNum[2]];
+    if (roman) {
+      return `${trailingNum[1].trim()} ${roman}`;
+    }
+  }
+
+  return q;
+}
+
 // Recursive helper: check if query string can be split into prefixes of consecutive name words
 // e.g. "crev" with ["cthulus", "revenge"] → "c" starts "cthulus" + "rev" starts "revenge" ✓
 function trySplitMatch(query, nameWords, qPos, nPos) {
@@ -39,7 +75,7 @@ function trySplitMatch(query, nameWords, qPos, nPos) {
 // Smart fuzzy match item name from database
 // Handles: "slime booth" → "Slime Trade Booth", "hbog" → "Heavyblade of Glory", etc.
 function findItem(query) {
-  const q = query.trim().toLowerCase();
+  const q = normalizeQuery(query.trim().toLowerCase());
   if (!q) return null;
 
   // 1. Exact match
@@ -194,7 +230,7 @@ function levenshtein(a, b) {
 }
 
 // Parse item input with quantity support
-// Supports: "2 Nocturne", "Nocturne x3", "3x Scarwing", "Nocturne 2", "Nocturne"
+// Supports: "2 Nocturne", "3x Nocturne" (quantity only on the LEFT side)
 function parseItemInput(input) {
   const entries = input.split(",").map((s) => s.trim()).filter(Boolean);
   const results = [];
@@ -203,27 +239,29 @@ function parseItemInput(input) {
     let qty = 1;
     let name = entry;
 
-    // Pattern: "2 Nocturne" or "2x Nocturne"
-    const prefixMatch = entry.match(/^(\d+)\s*x?\s+(.+)$/i);
-    if (prefixMatch) {
-      qty = parseInt(prefixMatch[1]);
-      name = prefixMatch[2].trim();
+    // Pattern: "3x Nocturne" or "3X Nocturne"
+    const prefixXMatch = entry.match(/^(\d+)\s*x\s+(.+)$/i);
+    if (prefixXMatch) {
+      qty = parseInt(prefixXMatch[1]);
+      name = prefixXMatch[2].trim();
     } else {
-      // Pattern: "Nocturne x3" or "Nocturne x 3"
-      const suffixMatch = entry.match(/^(.+?)\s*x\s*(\d+)$/i);
-      if (suffixMatch) {
-        name = suffixMatch[1].trim();
-        qty = parseInt(suffixMatch[2]);
-      } else {
-        // Pattern: "Nocturne 2" (number at end, only if it's clearly a qty)
-        const endNumMatch = entry.match(/^(.+?)\s+(\d+)$/);
-        if (endNumMatch) {
-          // Only treat trailing number as quantity if the name part matches an item
-          const testName = endNumMatch[1].trim();
-          if (findItem(testName)) {
-            name = testName;
-            qty = parseInt(endNumMatch[2]);
-          }
+      // Pattern: "2 Nocturne" (number + space + name)
+      const prefixMatch = entry.match(/^(\d+)\s+(.+)$/);
+      if (prefixMatch) {
+        // Only treat as quantity if the rest matches an item
+        const testName = prefixMatch[2].trim();
+        if (findItem(testName)) {
+          qty = parseInt(prefixMatch[1]);
+          name = testName;
+        }
+        // Otherwise treat entire string as item name (e.g. "4 curse 4" → qty=4, name="curse 4")
+        // Try: strip the leading number, check if remaining matches
+        else {
+          // It might be "3 c3" → qty=3, name="c3"
+          // Or "4 curse 4" → qty=4, name="curse 4"
+          // Already handled above since testName = "c3" or "curse 4"
+          // If findItem didn't match, keep entire entry as name (no quantity)
+          name = entry;
         }
       }
     }
