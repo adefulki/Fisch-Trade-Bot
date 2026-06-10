@@ -5,7 +5,12 @@ const cron = require("node-cron");
 const { scrapeValues, loadItems, formatChangesMessage } = require("./scraper");
 const { analyzeTradeLocally } = require("./analyzer");
 
-const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+const client = new Client({
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+  ],
+});
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // Live item data (reloaded after each sync)
@@ -395,12 +400,28 @@ async function analyzeTrade(leftItems, rightItems) {
 
 // --- Post value change notifications to a channel ---
 async function postChangeNotification(changes) {
-  if (!changes) return;
+  if (!changes) {
+    console.log("📢 No changes to notify");
+    return;
+  }
+
+  const totalChanges = changes.updated.length + changes.added.length + changes.removed.length;
+  if (totalChanges === 0) {
+    console.log("📢 No changes to notify (0 total)");
+    return;
+  }
+
   const channelId = process.env.NOTIFICATION_CHANNEL_ID;
-  if (!channelId) return;
+  if (!channelId || channelId === "paste_your_channel_id_here") {
+    console.log("⚠️ NOTIFICATION_CHANNEL_ID not set in .env — skipping notification");
+    return;
+  }
 
   const messages = formatChangesMessage(changes);
-  if (!messages) return;
+  if (!messages || messages.length === 0) {
+    console.log("📢 No formatted messages to send");
+    return;
+  }
 
   try {
     const channel = await client.channels.fetch(channelId);
@@ -408,10 +429,14 @@ async function postChangeNotification(changes) {
       console.error("⚠️ Notification channel not found:", channelId);
       return;
     }
+    if (!channel.isTextBased()) {
+      console.error("⚠️ Channel is not a text channel:", channelId);
+      return;
+    }
     for (const msg of messages) {
       await channel.send(msg);
     }
-    console.log("📢 Posted value change notification");
+    console.log(`📢 Posted value change notification (${totalChanges} changes) to #${channel.name}`);
   } catch (error) {
     console.error("⚠️ Failed to post notification:", error.message);
   }
