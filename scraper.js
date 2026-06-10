@@ -246,19 +246,82 @@ function formatChangesMessage(changes) {
     lines.push(``);
   }
 
-  // Updated items (only show significant changes)
+  // Separate updated items into UP and DOWN
   if (changes.updated.length > 0) {
-    lines.push(`📈 **VALUE CHANGES** (${changes.updated.length})`);
-    for (const item of changes.updated.slice(0, 15)) {
+    const goingUp = [];
+    const goingDown = [];
+    const other = []; // demand/trend changes without clear up/down
+
+    for (const item of changes.updated) {
+      // Check if any value field went up or down
+      let hasUp = false;
+      let hasDown = false;
+
+      for (const c of item.changes) {
+        if (c.field === "TrueVal" || c.field === "Trade Hub" || c.field === "Proto") {
+          const beforeNum = parseFloat(c.before.replace(/[S$, ]/g, "").replace("M", "000000").replace("K", "000").replace("N/A", "0")) || 0;
+          const afterNum = parseFloat(c.after.replace(/[S$, ]/g, "").replace("M", "000000").replace("K", "000").replace("N/A", "0")) || 0;
+          if (afterNum > beforeNum) hasUp = true;
+          if (afterNum < beforeNum) hasDown = true;
+        }
+        if (c.field === "Trend") {
+          if (c.after === "Rising") hasUp = true;
+          if (c.after === "Dropping") hasDown = true;
+        }
+        if (c.field === "Demand") {
+          const demandOrder = ["Very Low", "Low", "Medium", "High", "Limited"];
+          const beforeIdx = demandOrder.indexOf(c.before);
+          const afterIdx = demandOrder.indexOf(c.after);
+          if (afterIdx > beforeIdx) hasUp = true;
+          if (afterIdx < beforeIdx) hasDown = true;
+        }
+      }
+
       const changeStr = item.changes
         .map((c) => `${c.field}: ${c.before} → **${c.after}**`)
         .join(" | ");
-      lines.push(`> • **${item.name}** — ${changeStr}`);
+      const entry = `> • **${item.name}** — ${changeStr}`;
+
+      if (hasUp && !hasDown) goingUp.push(entry);
+      else if (hasDown && !hasUp) goingDown.push(entry);
+      else other.push(entry); // mixed or non-value changes
     }
-    if (changes.updated.length > 15) {
-      lines.push(`> *...and ${changes.updated.length - 15} more*`);
+
+    // Show items going UP
+    if (goingUp.length > 0) {
+      lines.push(`📈 **VALUE UP** (${goingUp.length})`);
+      for (const entry of goingUp.slice(0, 10)) {
+        lines.push(entry);
+      }
+      if (goingUp.length > 10) {
+        lines.push(`> *...and ${goingUp.length - 10} more*`);
+      }
+      lines.push(``);
     }
-    lines.push(``);
+
+    // Show items going DOWN
+    if (goingDown.length > 0) {
+      lines.push(`📉 **VALUE DOWN** (${goingDown.length})`);
+      for (const entry of goingDown.slice(0, 10)) {
+        lines.push(entry);
+      }
+      if (goingDown.length > 10) {
+        lines.push(`> *...and ${goingDown.length - 10} more*`);
+      }
+      lines.push(``);
+    }
+
+    // Show other changes (mixed or demand/trend only)
+    if (other.length > 0) {
+      lines.push(`🔄 **OTHER CHANGES** (${other.length})`);
+      for (const entry of other.slice(0, 10)) {
+        lines.push(entry);
+      }
+      if (other.length > 10) {
+        lines.push(`> *...and ${other.length - 10} more*`);
+      }
+      lines.push(``);
+    }
   }
 
   // Removed items
