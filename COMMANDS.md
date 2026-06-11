@@ -103,6 +103,24 @@ Show bot information, features, and creator details.
 
 ---
 
+### /chart
+Show a visual price chart for an item's value over time. Requires at least 2 recorded price changes.
+
+**Usage:**
+```
+/chart item: Evangeline
+/chart item: c3 days: 14
+/chart item: Nocturne days: 60
+```
+
+**Shows:**
+- Line chart of price over time (embedded image)
+- Current value, highest, lowest
+- Total price change and percentage
+- Demand and trend info
+
+---
+
 ## Quantity Format
 
 Quantity goes **before** the item name only:

@@ -59,6 +59,21 @@ const commands = [
   new SlashCommandBuilder()
     .setName("about")
     .setDescription("Show bot info and creator details"),
+  new SlashCommandBuilder()
+    .setName("chart")
+    .setDescription("Show a price chart for an item's value over time")
+    .addStringOption((option) =>
+      option
+        .setName("item")
+        .setDescription("Item name (e.g. Evangeline, c3)")
+        .setRequired(true)
+    )
+    .addIntegerOption((option) =>
+      option
+        .setName("days")
+        .setDescription("Number of days to chart (default: 30)")
+        .setRequired(false)
+    ),
 ].map((cmd) => cmd.toJSON());
 
 const rest = new REST({ version: "10" }).setToken(process.env.DISCORD_TOKEN);

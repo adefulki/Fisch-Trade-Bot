@@ -15,6 +15,7 @@ A Discord bot that analyzes trades for the Roblox game **Fisch** using live mark
 | `/sync` | Force refresh values from game.guide |
 | `/help` | Show usage guide in Discord |
 | `/about` | Show bot info and creator details |
+| `/chart` | Show a price chart for an item over time |
 
 ---
 
@@ -153,19 +154,40 @@ Posts to a Discord channel when values change during sync:
 ## 📁 Project Structure
 
 ```
-├── index.js            # Main bot + commands
-├── analyzer.js         # Local trade analysis (formula-based)
-├── scraper.js          # game.guide scraper + change detection
-├── history.js          # Historical data storage + analytics
-├── values.js           # Fallback hardcoded values
-├── deploy-commands.js  # Register slash commands
+├── index.js                  # Entry point
+├── deploy-commands.js        # Register slash commands
+├── values.js                 # Fallback hardcoded values
 ├── package.json
-├── .env                # Environment variables
+├── .env
+├── README.md
+├── COMMANDS.md
 ├── data/
-│   ├── values.json     # Current scraped values
-│   └── history.json    # Price change history (90 days)
-├── README.md           # This file
-└── COMMANDS.md         # User-facing documentation
+│   ├── values.json           # Current scraped data
+│   └── history.json          # Price change history (90 days)
+└── src/
+    ├── bot.js                # Discord client, cron, command router
+    ├── commands/
+    │   ├── trade.js          # /trade
+    │   ├── value.js          # /value
+    │   ├── market.js         # /market (paginated)
+    │   ├── history.js        # /history
+    │   ├── chart.js          # /chart (price chart image)
+    │   ├── sync.js           # /sync
+    │   ├── help.js           # /help
+    │   └── about.js          # /about
+    ├── services/
+    │   ├── ai.js             # Gemini AI integration
+    │   ├── analyzer.js       # Local trade valuation
+    │   ├── matcher.js        # Fuzzy item matching
+    │   ├── notifier.js       # Discord notifications
+    │   ├── scraper.js        # game.guide scraper
+    │   └── chart.js          # QuickChart.io chart generation
+    ├── data/
+    │   └── history.js        # Historical data + analytics
+    └── utils/
+        ├── constants.js      # Multipliers, aliases, roman numerals
+        ├── format.js         # Value formatting helpers
+        └── discord.js        # Embed, pagination, message splitting
 ```
 
 ---
@@ -178,3 +200,13 @@ Posts to a Discord channel when values change during sync:
 | **Local** | AI quota exceeded | Formula-based, instant, with item suggestions |
 
 Auto-switches on rate limits. Users see `⚡ Analyzed locally` footer when in local mode.
+
+---
+
+## 👤 Creator
+
+| | |
+|--|--|
+| **Discord** | adefulkih (`456285930420961281`) |
+| **GitHub** | [adefulki](https://github.com/adefulki) |
+| **Roblox** | RiseFromHell (`adefulkih`) |

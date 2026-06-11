@@ -19,6 +19,7 @@ const historyCmd = require("./commands/history");
 const syncCmd = require("./commands/sync");
 const helpCmd = require("./commands/help");
 const aboutCmd = require("./commands/about");
+const chartCmd = require("./commands/chart");
 
 /** Discord client with required intents */
 const client = new Client({
@@ -106,6 +107,9 @@ client.on("interactionCreate", async (interaction) => {
         break;
       case "about":
         await aboutCmd.execute(interaction);
+        break;
+      case "chart":
+        await chartCmd.execute(interaction);
         break;
       default:
         break;
