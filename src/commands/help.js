@@ -30,7 +30,7 @@ async function execute(interaction) {
     ``,
     `**\`/help\`** — Show this guide`,
     `**\`/about\`** — Bot info & creator`,
-    `**\`/chart\`** — Price chart for an item`,
+    `**\`/chart\`** — Price charts (TrueVal + Trade Hub & Proto)`,
     `> \`/chart item: Evangeline\` or \`/chart item: c3 days: 14\``,
     ``,
     `**\`/subscribe\`** — Get value change alerts in this channel`,

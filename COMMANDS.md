@@ -55,7 +55,10 @@ Show market analytics: top valued items, rising/dropping trends, biggest gainers
 ---
 
 ### /history
-Show price chart + change history for a specific item. Combines a visual line chart with a paginated list of all recorded changes.
+Show price charts + change history for a specific item. Displays:
+- **Chart 1:** TrueVal + Trade Hub (dual line)
+- **Chart 2:** Proto value (if proto has changed)
+- Paginated list of all recorded changes (newest first)
 
 **Usage:**
 ```
@@ -65,11 +68,11 @@ Show price chart + change history for a specific item. Combines a visual line ch
 ```
 
 **Shows:**
-- Line chart of price over time (embedded image)
+- Dual-line chart (TrueVal green, Trade Hub red)
+- Proto chart (gold, if data exists)
 - Current values (TrueVal, Trade Hub, Proto, Demand, Trend)
 - High / Low / Total Change stats
-- Timeline of all recorded price changes
-- Paginated with ◀ ▶ buttons if many entries
+- Timeline of all changes (newest first, paginated with ◀ ▶ buttons)
 
 *Note: History accumulates over time. The bot records changes every hour.*
 
@@ -106,7 +109,11 @@ Show bot information, features, and creator details.
 ---
 
 ### /chart
-Show a visual price chart for an item's value over time. Requires at least 2 recorded price changes.
+Show price charts for an item. Displays two charts:
+- **Chart 1:** TrueVal (green) + Trade Hub (red) — dual line comparison
+- **Chart 2:** Proto value (gold) — shown if proto has changed
+
+Requires at least 2 recorded price changes.
 
 **Usage:**
 ```
@@ -116,10 +123,9 @@ Show a visual price chart for an item's value over time. Requires at least 2 rec
 ```
 
 **Shows:**
-- Line chart of price over time (embedded image)
-- Current value, highest, lowest
-- Total price change and percentage
-- Demand and trend info
+- TrueVal & Trade Hub chart with change stats
+- Proto chart with change stats
+- Current values, demand, and trend
 
 ---
 

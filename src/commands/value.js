@@ -8,7 +8,7 @@ const { findItem } = require("../services/matcher");
 const { getAdjustedValue } = require("../services/analyzer");
 const { getItemHistory, formatVal: histFormatVal } = require("../data/history");
 const { formatVal, trendEmoji } = require("../utils/format");
-const { buildPriceChartUrl } = require("../services/chart");
+const { buildValueChartUrl } = require("../services/chart");
 
 /**
  * Handle the /value slash command interaction.
@@ -77,28 +77,29 @@ async function execute(interaction) {
     }
 
     // Build chart
-    const dataPoints = [];
+    const valuePoints = [];
     for (const entry of entries) {
+      let trueVal = null;
+      let tradeHub = null;
+      let changed = false;
       for (const change of entry.changes) {
-        if (change.field === "TrueVal" || change.field === "Trade Hub") {
-          const afterVal = parseVal(change.after);
-          if (afterVal > 0) {
-            const date = new Date(entry.timestamp).toLocaleDateString("en-GB", {
-              timeZone: "Asia/Jakarta", day: "numeric", month: "short",
-            });
-            dataPoints.push({ date, value: afterVal });
-          }
-        }
+        if (change.field === "TrueVal") { trueVal = parseVal(change.after); changed = true; }
+        if (change.field === "Trade Hub") { tradeHub = parseVal(change.after); changed = true; }
+      }
+      if (changed) {
+        const date = new Date(entry.timestamp).toLocaleDateString("en-GB", {
+          timeZone: "Asia/Jakarta", day: "numeric", month: "short",
+        });
+        valuePoints.push({ date, trueVal, tradeHub });
       }
     }
 
-    const currentVal = item.trueVal || item.tradeHub || 0;
-    if (currentVal > 0 && dataPoints.length > 0) {
-      dataPoints.push({ date: "Now", value: currentVal });
+    if (valuePoints.length > 0) {
+      valuePoints.push({ date: "Now", trueVal: item.trueVal, tradeHub: item.tradeHub });
     }
 
-    const chartUrl = dataPoints.length >= 2
-      ? buildPriceChartUrl(item.name, dataPoints, item.trueVal ? "TrueVal" : "Trade Hub")
+    const chartUrl = valuePoints.length >= 2
+      ? buildValueChartUrl(item.name, valuePoints)
       : null;
 
     // Format recent changes (newest first)

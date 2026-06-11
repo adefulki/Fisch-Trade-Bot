@@ -120,9 +120,14 @@ All sections displayed at once as multiple embeds.
 
 ```
 /chart item: Evangeline days: 30
+/history item: Nocturne
 ```
 
-Shows a line chart of the item's price over time with current value, high, low, and total change.
+Shows two charts:
+- **TrueVal + Trade Hub** (green & red lines) — value comparison over time
+- **Proto** (gold line) — proto changes over time
+
+Both `/chart` and `/history` display these charts. `/history` also includes the change log.
 
 ---
 

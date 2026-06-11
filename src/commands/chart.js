@@ -1,16 +1,18 @@
 /**
- * /chart command — Show a price chart for an item's historical value changes.
- * Generates a line chart image via QuickChart.io and embeds it.
+ * /chart command — Show price charts for an item.
+ * Chart 1: TrueVal + Trade Hub (dual line)
+ * Chart 2: Proto value (single line)
  */
 
 const { EmbedBuilder } = require("discord.js");
 const { findItem } = require("../services/matcher");
-const { getItemHistory, formatVal } = require("../data/history");
-const { buildPriceChartUrl } = require("../services/chart");
-const { trendEmoji } = require("../utils/format");
+const { getItemHistory } = require("../data/history");
+const { buildValueChartUrl, buildProtoChartUrl } = require("../services/chart");
+const { formatVal, trendEmoji } = require("../utils/format");
 
 /**
  * Handle the /chart slash command interaction.
+ * Generates two charts: TrueVal+TradeHub and Proto.
  * @param {object} interaction - Discord interaction object
  */
 async function execute(interaction) {
@@ -31,12 +33,12 @@ async function execute(interaction) {
 
   if (entries.length < 2) {
     const embed = new EmbedBuilder()
-      .setTitle(`📈 ${item.name} — Price Chart`)
+      .setTitle(`📈 ${item.name} — Charts`)
       .setDescription(
-        `Not enough data to generate a chart.\n\n` +
-        `**Current:** TrueVal: ${formatVal(item.trueVal)} | Trade Hub: ${formatVal(item.tradeHub)}\n` +
+        `Not enough data to generate charts.\n\n` +
+        `**Current:** TrueVal: ${formatVal(item.trueVal)} | Trade Hub: ${formatVal(item.tradeHub)} | Proto: ${item.proto || "N/A"}\n` +
         `**Changes recorded:** ${entries.length}\n\n` +
-        `*Need at least 2 price changes to draw a chart. Data accumulates over time as values update.*`
+        `*Need at least 2 price changes. Data accumulates over time.*`
       )
       .setColor(0x808080)
       .setFooter({ text: "Charts build up as the bot records value changes hourly" });
@@ -45,81 +47,142 @@ async function execute(interaction) {
     return;
   }
 
-  // Build data points from history entries
-  // Track the running value by applying changes
-  const dataPoints = [];
-  let currentVal = item.trueVal || item.tradeHub || 0;
-  const valueField = item.trueVal ? "TrueVal" : "Trade Hub";
+  // Build data points from history
+  const valuePoints = []; // {date, trueVal, tradeHub}
+  const protoPoints = []; // {date, proto}
 
-  // Collect values from history (oldest to newest)
+  // Track running values
+  let lastTrueVal = null;
+  let lastTradeHub = null;
+  let lastProto = null;
+
   for (const entry of entries) {
+    const date = new Date(entry.timestamp).toLocaleDateString("en-GB", {
+      timeZone: "Asia/Jakarta",
+      day: "numeric",
+      month: "short",
+    });
+
+    let valueChanged = false;
+    let protoChanged = false;
+
     for (const change of entry.changes) {
-      if (change.field === "TrueVal" || change.field === "Trade Hub") {
-        const afterVal = parseValueFromFormatted(change.after);
-        if (afterVal > 0) {
-          const date = new Date(entry.timestamp).toLocaleDateString("en-GB", {
-            timeZone: "Asia/Jakarta",
-            day: "numeric",
-            month: "short",
-          });
-          dataPoints.push({ date, value: afterVal });
-        }
+      if (change.field === "TrueVal") {
+        lastTrueVal = parseVal(change.after);
+        valueChanged = true;
       }
+      if (change.field === "Trade Hub") {
+        lastTradeHub = parseVal(change.after);
+        valueChanged = true;
+      }
+      if (change.field === "Proto") {
+        lastProto = parseFloat(change.after) || null;
+        protoChanged = true;
+      }
+    }
+
+    if (valueChanged) {
+      valuePoints.push({ date, trueVal: lastTrueVal, tradeHub: lastTradeHub });
+    }
+    if (protoChanged) {
+      protoPoints.push({ date, proto: lastProto });
     }
   }
 
-  // Add current value as last point
-  if (currentVal > 0) {
-    dataPoints.push({ date: "Now", value: currentVal });
+  // Add current values as last point
+  if (valuePoints.length > 0) {
+    valuePoints.push({ date: "Now", trueVal: item.trueVal, tradeHub: item.tradeHub });
+  }
+  if (protoPoints.length > 0) {
+    protoPoints.push({ date: "Now", proto: item.proto });
   }
 
-  if (dataPoints.length < 2) {
-    await interaction.editReply({
-      content: `⚠️ Not enough price change data for **${item.name}** to generate a chart. Try again later.`,
-    });
-    return;
+  const embeds = [];
+
+  // Chart 1: TrueVal + Trade Hub
+  if (valuePoints.length >= 2) {
+    const chartUrl = buildValueChartUrl(item.name, valuePoints);
+
+    // Calculate stats
+    const trueVals = valuePoints.map((p) => p.trueVal).filter(Boolean);
+    const tradeHubs = valuePoints.map((p) => p.tradeHub).filter(Boolean);
+
+    let statsLines = [];
+    if (trueVals.length > 0) {
+      const change = trueVals[trueVals.length - 1] - trueVals[0];
+      const pct = ((change / trueVals[0]) * 100).toFixed(1);
+      statsLines.push(`**TrueVal:** ${formatVal(item.trueVal)} (${change >= 0 ? "+" : ""}${formatVal(change)}, ${pct}%)`);
+    }
+    if (tradeHubs.length > 0) {
+      const change = tradeHubs[tradeHubs.length - 1] - tradeHubs[0];
+      const pct = ((change / tradeHubs[0]) * 100).toFixed(1);
+      statsLines.push(`**Trade Hub:** ${formatVal(item.tradeHub)} (${change >= 0 ? "+" : ""}${formatVal(change)}, ${pct}%)`);
+    }
+
+    const valueEmbed = new EmbedBuilder()
+      .setTitle(`📈 ${item.name} — Value Chart (${days}d)`)
+      .setDescription(statsLines.join("\n") + `\n**Demand:** ${item.demand} | **Trend:** ${trendEmoji(item.trend)} ${item.trend}`)
+      .setImage(chartUrl)
+      .setColor(0x1e90ff);
+
+    embeds.push(valueEmbed);
   }
 
-  // Calculate stats
-  const values = dataPoints.map((p) => p.value);
-  const high = Math.max(...values);
-  const low = Math.min(...values);
-  const change = values[values.length - 1] - values[0];
-  const changePct = ((change / values[0]) * 100).toFixed(1);
-  const changeStr = change >= 0 ? `+${formatVal(change)} (+${changePct}%)` : `${formatVal(change)} (${changePct}%)`;
+  // Chart 2: Proto
+  if (protoPoints.length >= 2) {
+    const chartUrl = buildProtoChartUrl(item.name, protoPoints);
 
-  // Generate chart URL
-  const chartUrl = buildPriceChartUrl(item.name, dataPoints, valueField);
+    const protos = protoPoints.map((p) => p.proto).filter(Boolean);
+    let protoStats = `**Proto:** ${item.proto || "N/A"}`;
+    if (protos.length >= 2) {
+      const change = protos[protos.length - 1] - protos[0];
+      protoStats += ` (${change >= 0 ? "+" : ""}${change})`;
+    }
 
-  const embed = new EmbedBuilder()
-    .setTitle(`📈 ${item.name} — Price Chart (${days}d)`)
-    .setImage(chartUrl)
-    .setColor(change >= 0 ? 0x00ff00 : 0xff4500)
-    .addFields(
-      { name: "Current", value: formatVal(currentVal), inline: true },
-      { name: "High", value: formatVal(high), inline: true },
-      { name: "Low", value: formatVal(low), inline: true },
-      { name: "Change", value: changeStr, inline: true },
-      { name: "Demand", value: item.demand, inline: true },
-      { name: "Trend", value: `${trendEmoji(item.trend)} ${item.trend}`, inline: true },
-    )
-    .setFooter({ text: `${dataPoints.length} data points • Source: game.guide` })
-    .setTimestamp();
+    const protoEmbed = new EmbedBuilder()
+      .setTitle(`🪙 ${item.name} — Proto Chart (${days}d)`)
+      .setDescription(protoStats)
+      .setImage(chartUrl)
+      .setColor(0xffd700)
+      .setFooter({ text: `${valuePoints.length + protoPoints.length} data points • Source: game.guide` });
 
-  await interaction.editReply({ embeds: [embed] });
+    embeds.push(protoEmbed);
+  }
+
+  // If no charts could be generated
+  if (embeds.length === 0) {
+    embeds.push(
+      new EmbedBuilder()
+        .setTitle(`📈 ${item.name} — Charts`)
+        .setDescription(
+          `Not enough distinct value/proto changes to draw charts.\n\n` +
+          `**Current:** TrueVal: ${formatVal(item.trueVal)} | Trade Hub: ${formatVal(item.tradeHub)} | Proto: ${item.proto || "N/A"}\n` +
+          `**Changes recorded:** ${entries.length}\n\n` +
+          `*Data accumulates over time as values change.*`
+        )
+        .setColor(0x808080)
+    );
+  } else {
+    // Add footer to last embed if not already set
+    if (!embeds[embeds.length - 1].data.footer) {
+      embeds[embeds.length - 1].setFooter({ text: `Source: game.guide` });
+    }
+  }
+
+  await interaction.editReply({ embeds });
 }
 
 /**
- * Parse a formatted value string like "S$ 4.50M" back to number.
- * @param {string} str - Formatted value string
- * @returns {number} Numeric value
+ * Parse formatted value string back to number.
+ * @param {string} str - Formatted string like "S$ 4.50M"
+ * @returns {number|null} Numeric value or null
  */
-function parseValueFromFormatted(str) {
-  if (!str || str === "N/A") return 0;
+function parseVal(str) {
+  if (!str || str === "N/A") return null;
   str = str.replace(/\*\*/g, "").replace("S$", "").replace(/,/g, "").trim();
   if (str.includes("M")) return parseFloat(str) * 1000000;
   if (str.includes("K")) return parseFloat(str) * 1000;
-  return parseFloat(str) || 0;
+  return parseFloat(str) || null;
 }
 
 module.exports = { execute };

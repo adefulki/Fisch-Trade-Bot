@@ -6,7 +6,7 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType } = require("discord.js");
 const { findItem } = require("../services/matcher");
 const { getItemHistory, formatVal } = require("../data/history");
-const { buildPriceChartUrl } = require("../services/chart");
+const { buildValueChartUrl, buildProtoChartUrl } = require("../services/chart");
 const { trendEmoji } = require("../utils/format");
 
 /**
@@ -32,45 +32,78 @@ async function execute(interaction) {
   const entries = getItemHistory(item.name, days);
 
   // Build chart data points
-  const dataPoints = [];
+  const valuePoints = []; // {date, trueVal, tradeHub}
   const valueField = item.trueVal ? "TrueVal" : "Trade Hub";
 
   for (const entry of entries) {
+    const date = new Date(entry.timestamp).toLocaleDateString("en-GB", {
+      timeZone: "Asia/Jakarta",
+      day: "numeric",
+      month: "short",
+    });
+
+    let trueVal = null;
+    let tradeHub = null;
+    let changed = false;
+
     for (const change of entry.changes) {
-      if (change.field === "TrueVal" || change.field === "Trade Hub") {
-        const afterVal = parseValueFromFormatted(change.after);
-        if (afterVal > 0) {
-          const date = new Date(entry.timestamp).toLocaleDateString("en-GB", {
-            timeZone: "Asia/Jakarta",
-            day: "numeric",
-            month: "short",
-          });
-          dataPoints.push({ date, value: afterVal });
-        }
+      if (change.field === "TrueVal") {
+        trueVal = parseValueFromFormatted(change.after);
+        changed = true;
       }
+      if (change.field === "Trade Hub") {
+        tradeHub = parseValueFromFormatted(change.after);
+        changed = true;
+      }
+    }
+
+    if (changed) {
+      valuePoints.push({ date, trueVal, tradeHub });
     }
   }
 
   // Add current value as last point
   const currentVal = item.trueVal || item.tradeHub || 0;
-  if (currentVal > 0 && dataPoints.length > 0) {
-    dataPoints.push({ date: "Now", value: currentVal });
+  if (currentVal > 0 && valuePoints.length > 0) {
+    valuePoints.push({ date: "Now", trueVal: item.trueVal, tradeHub: item.tradeHub });
   }
 
   // Calculate stats
   let statsText = "";
-  if (dataPoints.length >= 2) {
-    const values = dataPoints.map((p) => p.value);
-    const high = Math.max(...values);
-    const low = Math.min(...values);
-    const change = values[values.length - 1] - values[0];
-    const changePct = ((change / values[0]) * 100).toFixed(1);
-    const changeStr = change >= 0 ? `+${formatVal(change)} (+${changePct}%)` : `${formatVal(change)} (${changePct}%)`;
-    statsText = `📊 High: ${formatVal(high)} | Low: ${formatVal(low)} | Change: ${changeStr}`;
+  if (valuePoints.length >= 2) {
+    const trueVals = valuePoints.map((p) => p.trueVal).filter(Boolean);
+    const tradeHubs = valuePoints.map((p) => p.tradeHub).filter(Boolean);
+    const allVals = [...trueVals, ...tradeHubs];
+    if (allVals.length > 0) {
+      const high = Math.max(...allVals);
+      const low = Math.min(...allVals);
+      const main = trueVals.length > 0 ? trueVals : tradeHubs;
+      const change = main[main.length - 1] - main[0];
+      const changePct = ((change / main[0]) * 100).toFixed(1);
+      const changeStr = change >= 0 ? `+${formatVal(change)} (+${changePct}%)` : `${formatVal(change)} (${changePct}%)`;
+      statsText = `📊 High: ${formatVal(high)} | Low: ${formatVal(low)} | Change: ${changeStr}`;
+    }
   }
 
-  // Generate chart URL (or null if not enough data)
-  const chartUrl = dataPoints.length >= 2 ? buildPriceChartUrl(item.name, dataPoints, valueField) : null;
+  // Generate chart URLs
+  const chartUrl = valuePoints.length >= 2 ? buildValueChartUrl(item.name, valuePoints) : null;
+
+  // Build proto data points
+  const protoPoints = [];
+  for (const entry of entries) {
+    for (const change of entry.changes) {
+      if (change.field === "Proto") {
+        const date = new Date(entry.timestamp).toLocaleDateString("en-GB", {
+          timeZone: "Asia/Jakarta", day: "numeric", month: "short",
+        });
+        protoPoints.push({ date, proto: parseFloat(change.after) || null });
+      }
+    }
+  }
+  if (protoPoints.length > 0 && item.proto) {
+    protoPoints.push({ date: "Now", proto: item.proto });
+  }
+  const protoChartUrl = protoPoints.length >= 2 ? buildProtoChartUrl(item.name, protoPoints) : null;
 
   // Build header info
   const headerLines = [
@@ -82,11 +115,13 @@ async function execute(interaction) {
 
   // Color based on overall trend
   let color = 0x1e90ff;
-  if (dataPoints.length >= 2) {
-    const lastVal = dataPoints[dataPoints.length - 1].value;
-    const firstVal = dataPoints[0].value;
-    if (lastVal > firstVal) color = 0x00ff00;
-    else if (lastVal < firstVal) color = 0xff4500;
+  if (valuePoints.length >= 2) {
+    const trueVals = valuePoints.map((p) => p.trueVal).filter(Boolean);
+    const main = trueVals.length > 0 ? trueVals : valuePoints.map((p) => p.tradeHub).filter(Boolean);
+    if (main.length >= 2) {
+      if (main[main.length - 1] > main[0]) color = 0x00ff00;
+      else if (main[main.length - 1] < main[0]) color = 0xff4500;
+    }
   }
 
   // No history case
@@ -151,9 +186,25 @@ async function execute(interaction) {
     return embed;
   }
 
+  /**
+   * Build all embeds for current page (main + optional proto chart).
+   */
+  function buildEmbeds() {
+    const embeds = [buildEmbed()];
+    if (protoChartUrl) {
+      embeds.push(
+        new EmbedBuilder()
+          .setTitle(`🪙 ${item.name} — Proto Chart (${days}d)`)
+          .setImage(protoChartUrl)
+          .setColor(0xffd700)
+      );
+    }
+    return embeds;
+  }
+
   // If single page, no buttons needed
   if (pages.length === 1) {
-    await interaction.editReply({ embeds: [buildEmbed()] });
+    await interaction.editReply({ embeds: buildEmbeds() });
     return;
   }
 
@@ -167,7 +218,7 @@ async function execute(interaction) {
     );
   }
 
-  const msg = await interaction.editReply({ embeds: [buildEmbed()], components: [buildButtons()] });
+  const msg = await interaction.editReply({ embeds: buildEmbeds(), components: [buildButtons()] });
 
   const collector = msg.createMessageComponentCollector({
     componentType: ComponentType.Button,
@@ -178,7 +229,7 @@ async function execute(interaction) {
   collector.on("collect", async (btn) => {
     if (btn.customId === "hist_prev") currentPage = Math.max(0, currentPage - 1);
     if (btn.customId === "hist_next") currentPage = Math.min(pages.length - 1, currentPage + 1);
-    await btn.update({ embeds: [buildEmbed()], components: [buildButtons()] });
+    await btn.update({ embeds: buildEmbeds(), components: [buildButtons()] });
   });
 
   collector.on("end", async () => {
