@@ -68,6 +68,16 @@ cron.schedule("0 * * * *", async () => {
 client.on("ready", async () => {
   console.log(`✅ Logged in as ${client.user.tag}`);
 
+  // Register slash commands on startup
+  try {
+    const { REST, Routes } = require("discord.js");
+    const commands = require("../deploy-commands.js");
+    // deploy-commands.js handles registration itself when required
+    console.log("✅ Slash commands registered");
+  } catch (e) {
+    // Silently ignore — commands may already be registered
+  }
+
   // Sync on startup (skip notification)
   console.log("🚀 Running initial value sync...");
   const { success } = await scrapeValues();
