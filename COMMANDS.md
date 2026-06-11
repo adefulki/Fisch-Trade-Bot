@@ -23,11 +23,6 @@ Analyze a trade to see if it's a win or loss.
 ### /value
 Look up a single item's full stats and adjusted value.
 
-**Usage:**
-```
-/value item: [item name]
-```
-
 **Examples:**
 ```
 /value item: Evangeline
@@ -38,8 +33,48 @@ Look up a single item's full stats and adjusted value.
 
 ---
 
+### /market
+Show market analytics: top valued items, rising/dropping trends, biggest gainers/losers, most volatile items, and best flip opportunities.
+
+**Usage:**
+```
+/market              → last 7 days (default)
+/market days: 14     → last 14 days
+/market days: 30     → last 30 days
+```
+
+**Shows:**
+- 🏆 Top 10 most valuable items
+- 📈 Currently rising items
+- 📉 Currently dropping items
+- 🚀 Biggest gainers (price went up most)
+- 💀 Biggest losers (price went down most)
+- ⚡ Most volatile (most frequent price changes)
+- 💰 Best flip opportunities (High demand, underpriced in Trade Hub)
+
+---
+
+### /history
+Show price change history for a specific item over time.
+
+**Usage:**
+```
+/history item: Evangeline          → last 30 days (default)
+/history item: c3 days: 7          → last 7 days
+/history item: Nocturne days: 60   → last 60 days
+```
+
+**Shows:**
+- Current values (TrueVal, Trade Hub, Proto, Demand, Trend)
+- Timeline of all recorded price changes with timestamps
+- Each change shows before → after for each field
+
+*Note: History accumulates over time. The bot records changes every hour, so more data = better insights.*
+
+---
+
 ### /sync
-Force refresh item values from game.guide (values also auto-update every hour).
+Force refresh item values from game.guide. Values also auto-update every hour.
 
 **Usage:**
 ```
@@ -60,34 +95,24 @@ Show a quick guide inside Discord (only visible to you).
 
 ## Quantity Format
 
-Quantity goes **before** the item name only. Two formats:
+Quantity goes **before** the item name only:
 
 | Format | Example | Result |
 |--------|---------|--------|
 | Number + space | `3 Nocturne` | 3× Nocturne |
 | Number + x + space | `3x Nocturne` | 3× Nocturne |
-
-**More examples:**
-```
-3 c3        → 3× Curse III
-4 c4        → 4× Curse IV
-2 evan      → 2× Evangeline
-3x stb      → 3× Slime Trade Booth
-4 curse 4   → 4× Curse IV
-```
+| With aliases | `4 c4` | 4× Curse IV |
+| With aliases | `3 c3` | 3× Curse III |
+| No number | `Evangeline` | 1× Evangeline |
 
 Separate multiple items with commas:
 ```
 3 c3, 2 Nocturne, Scarwing
 ```
 
-No number = 1× by default.
-
 ---
 
 ## Flexible Item Names
-
-You don't need to type exact names. The bot understands shortcuts, abbreviations, partial words, and even typos.
 
 ### Quick Aliases
 
@@ -95,12 +120,8 @@ You don't need to type exact names. The bot understands shortcuts, abbreviations
 |-----------|-----------|
 | `c3` | Curse III |
 | `c4` | Curse IV |
-| `c 3` | Curse III |
-| `c 4` | Curse IV |
 | `stb` | Slime Trade Booth |
 | `rb` | Seraphic Rainbow |
-| `curse 3` | Curse III |
-| `curse 4` | Curse IV |
 
 ### Shortened Names
 
@@ -110,10 +131,7 @@ You don't need to type exact names. The bot understands shortcuts, abbreviations
 | `noc` | Nocturne |
 | `reaper` | The Reaper |
 | `cuddly` | Cuddly Claw |
-| `fuchsia` | Fuchsia Fidelity |
 | `malev` | Malevolence |
-| `cathedral` | Cathedral Booth |
-| `panth` | Pantheress |
 
 ### Partial Words
 
@@ -123,21 +141,16 @@ You don't need to type exact names. The bot understands shortcuts, abbreviations
 | `heavy glory` | Heavyblade of Glory |
 | `eye seraph` | Eye of Seraph |
 | `purr rebel` | Purr of Rebellion |
-| `black com` | Black Comet |
-| `cy demo` | Cyanic Demonride |
 | `rb sera` | Seraphic Rainbow |
-| `blk comet` | Black Comet |
 
 ### Condensed Names
 
-Combine first letters of each word into one word:
-
-| Type this | Gets this | How it works |
-|-----------|-----------|-------------|
-| `crev` | Cthulu's Revenge | **C** + **Rev**enge |
-| `treaper` | The Reaper | **T** + **Reaper** |
-| `pheaven` | Puff of Heaven | **P** + **Heaven** |
-| `cdemon` | Cyanic Demonride | **C** + **Demon**ride |
+| Type this | Gets this |
+|-----------|-----------|
+| `crev` | Cthulu's Revenge |
+| `treaper` | The Reaper |
+| `pheaven` | Puff of Heaven |
+| `cdemon` | Cyanic Demonride |
 
 ### Without Apostrophes
 
@@ -145,7 +158,6 @@ Combine first letters of each word into one word:
 |-----------|-----------|
 | `dutchmans` | Dutchman's Penance |
 | `ravens hush` | Raven's Hush |
-| `sanzus embrace` | Sanzu's Embrace |
 | `cthulu revenge` | Cthulu's Revenge |
 
 ### Typos (Auto-Corrected)
@@ -155,39 +167,12 @@ Combine first letters of each word into one word:
 | `pearsickle` | Pearsicle |
 | `scarwng` | Scarwing |
 | `evangline` | Evangeline |
-| `nocturn` | Nocturne |
 
 ---
 
 ## Understanding the Output
 
-### Trade Output Example
-
-```
-⚖️ FISCH TRADE ASSISTANT
-
-📦 YOUR OFFER
-• Eye of Seraph — S$ 400.0K (TrueVal | Demand: Medium | ➡️ Stable)
-Total Adjusted Value: S$ 400.0K
-
-🎁 THEIR OFFER
-• Nessie Booth — S$ 400.0K → Adj: S$ 360.0K (TrueVal | Demand: Low | ➡️ Stable)
-Total Adjusted Value: S$ 360.0K
-
-━━━━━━━━━━━━━━━━━━━━━━━━
-📊 VERDICT: 🟡 FAIR 🟡
-
-📝 RECOMMENDATION:
-Trade is roughly even. Accept if you prefer their items or demand/trend favors them.
-💡 To make it a WIN: Ask them to add Porcelain Chord (S$ 84.7K).
-```
-
-**Reading the values:**
-- `S$ 400.0K` = raw value from TrueVal/Trade Hub
-- `→ Adj: S$ 360.0K` = adjusted for demand/trend (only shown when different)
-- Items with Medium demand + Stable trend show only the raw value
-
-### Verdict Scale
+### Trade Verdict Scale
 
 | Verdict | Meaning | What to do |
 |---------|---------|------------|
@@ -197,44 +182,69 @@ Trade is roughly even. Accept if you prefer their items or demand/trend favors t
 | 🔴 **LOSS** | You're giving more value | Ask them to add |
 | 🔴🔴 **BIG LOSS** | Massive value gap | Decline |
 
+### Adjusted Value
+
+Items show raw value and adjusted value based on demand/trend:
+- `S$ 400.0K` = raw value (no adjustment needed)
+- `S$ 400.0K → Adj: S$ 360.0K` = demand/trend reduced the effective value
+
+**Demand effect:** Limited +25% | High +10% | Medium 0% | Low -10% | Very Low -20%
+
+**Trend effect:** 📈 Rising +10% | ➡️ Stable 0% | 📉 Dropping -12% | ⚡ Unstable -5%
+
 ### Item Suggestions
 
 If a trade is unfair, the bot suggests specific items to add:
 ```
-💡 Ask them to add: The Reaper (S$ 1.76M), Curse III (S$ 484.0K) (≈ S$ 2.20M needed).
-```
-
-If a trade is fair but you want a win:
-```
-💡 To make it a WIN: Ask them to add Porcelain Chord (S$ 84.7K).
+💡 Ask them to add: The Reaper (S$ 1.76M) (≈ S$ 2.20M needed).
 ```
 
 ---
 
-## How Values Are Calculated
+## Market Analytics
 
-Each item has an **Adjusted Value** based on:
+The `/market` command shows live market insights:
+
+- **Best Flip Opportunities** — Items where Trade Hub price is lower than TrueVal with High demand. Buy low in Trade Hub, sell at TrueVal.
+- **Most Volatile** — Items that change price frequently. Good for active traders.
+- **Biggest Gainers/Losers** — Items that gained or lost the most value over the selected period.
+
+---
+
+## Price History
+
+The `/history` command tracks how an item's value changed over time:
 
 ```
-Adjusted Value = Raw Value × Demand × Trend
+📜 Evangeline — Price History (last 30 days)
+
+Current: TrueVal: S$ 4.50M | Trade Hub: S$ 4.60M | Demand: High | Trend: Stable
+
+📊 3 changes recorded:
+> 2 Jun, 14:00  TrueVal: S$ 4.20M → S$ 4.35M
+> 5 Jun, 08:00  TrueVal: S$ 4.35M → S$ 4.50M
+> 8 Jun, 20:00  Trade Hub: S$ 4.40M → S$ 4.60M
 ```
 
-**Demand effect:**
-| Demand | Effect |
-|--------|--------|
-| Limited | +25% |
-| High | +10% |
-| Medium | No change |
-| Low | -10% |
-| Very Low | -20% |
+History builds up automatically. More time = more data = better analytics.
 
-**Trend effect:**
-| Trend | Effect |
-|-------|--------|
-| 📈 Rising | +10% |
-| ➡️ Stable | No change |
-| 📉 Dropping | -12% |
-| ⚡ Unstable | -5% |
+---
+
+## Value Change Notifications
+
+The bot posts automatic notifications to a designated channel when values change:
+
+```
+📢 FISCH VALUE UPDATE — 11 Jun 2026, 14:00 WIB
+
+📈 VALUE UP (3)
+> • Grand Symphony — Trade Hub: S$ 152.0K → S$ 154.0K
+> • Nocturne — Trend: Stable → Rising
+
+📉 VALUE DOWN (2)
+> • Pearsicle — Trade Hub: S$ 31.1K → S$ 30.5K
+> • Curse III — Trend: Stable → Dropping
+```
 
 ---
 
@@ -243,7 +253,6 @@ Adjusted Value = Raw Value × Demand × Trend
 - Values update automatically every hour from game.guide
 - Items with 📈 Rising trend are worth more — hold them
 - Items with 📉 Dropping trend are worth less — trade them away soon
-- High demand items sell fast and trade above price
-- Low demand items are hard to sell and trade below price
-- The bot suggests real items you can ask for to balance unfair trades
-- If you see `⚡ Analyzed locally` — AI is on cooldown, values are still accurate
+- Use `/market` to find flip opportunities before trading
+- Use `/history` to check if an item's value is going up or down before accepting a trade
+- History data is kept for 90 days then auto-pruned

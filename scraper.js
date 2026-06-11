@@ -3,7 +3,7 @@ const cheerio = require("cheerio");
 const fs = require("fs");
 const path = require("path");
 
-const DATA_FILE = path.join(__dirname, "data", "values.json");
+const DATA_FILE = path.join(process.env.VOLUME_PATH || path.join(__dirname, "data"), "values.json");
 const SOURCE_URL = "https://www.game.guide/fisch-value-list";
 
 // Parse value strings like "S$ 4.5M", "S$ 300K", "N/A"

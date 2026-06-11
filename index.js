@@ -4,6 +4,7 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 const cron = require("node-cron");
 const { scrapeValues, loadItems, formatChangesMessage } = require("./scraper");
 const { analyzeTradeLocally } = require("./analyzer");
+const { recordChanges, getItemHistory, getMarketAnalytics, formatVal: histFormatVal } = require("./history");
 
 const client = new Client({
   intents: [
@@ -456,6 +457,9 @@ async function syncAndNotify() {
   const { success, changes } = await scrapeValues();
   if (success) {
     items = loadItems();
+    // Record changes to history for analytics
+    recordChanges(changes);
+    // Post notification to Discord
     await postChangeNotification(changes);
   }
   return success;
@@ -521,6 +525,7 @@ client.on("interactionCreate", async (interaction) => {
     const { success, changes } = await scrapeValues();
     if (success) {
       items = loadItems();
+      recordChanges(changes);
       await postChangeNotification(changes);
       const totalChanges = changes ? (changes.updated.length + changes.added.length + changes.removed.length) : 0;
       await interaction.editReply(`✅ Values synced! Loaded ${items.length} items. ${totalChanges > 0 ? `(${totalChanges} changes detected)` : "(no changes)"}`);
@@ -560,6 +565,161 @@ client.on("interactionCreate", async (interaction) => {
     await interaction.reply(response);
   }
 
+  // Market analytics command
+  if (interaction.commandName === "market") {
+    await interaction.deferReply();
+
+    const days = interaction.options.getInteger("days") || 7;
+    const analytics = getMarketAnalytics(items, days);
+
+    const lines = [
+      `📊 **FISCH MARKET ANALYTICS** (last ${days} days)`,
+      ``,
+      `📦 **${analytics.totalItems}** items tracked | **${analytics.totalSnapshots}** price updates recorded`,
+      ``,
+      `━━━━━━━━━━━━━━━━━━━━━━━━`,
+      `🏆 **TOP 10 MOST VALUABLE**`,
+      `━━━━━━━━━━━━━━━━━━━━━━━━`,
+    ];
+
+    for (let i = 0; i < analytics.topValue.length; i++) {
+      const item = analytics.topValue[i];
+      lines.push(`> ${i + 1}. **${item.name}** — ${histFormatVal(item.trueVal)} (${item.demand} | ${item.trend})`);
+    }
+
+    lines.push(``);
+    lines.push(`━━━━━━━━━━━━━━━━━━━━━━━━`);
+    lines.push(`📈 **CURRENTLY RISING** (${analytics.rising.length})`);
+    lines.push(`━━━━━━━━━━━━━━━━━━━━━━━━`);
+    if (analytics.rising.length > 0) {
+      for (const item of analytics.rising.slice(0, 5)) {
+        lines.push(`> • **${item.name}** — ${histFormatVal(item.trueVal)} (${item.demand})`);
+      }
+    } else {
+      lines.push(`> *No items currently rising*`);
+    }
+
+    lines.push(``);
+    lines.push(`━━━━━━━━━━━━━━━━━━━━━━━━`);
+    lines.push(`📉 **CURRENTLY DROPPING** (${analytics.dropping.length})`);
+    lines.push(`━━━━━━━━━━━━━━━━━━━━━━━━`);
+    if (analytics.dropping.length > 0) {
+      for (const item of analytics.dropping.slice(0, 5)) {
+        lines.push(`> • **${item.name}** — ${histFormatVal(item.trueVal)} (${item.demand})`);
+      }
+    } else {
+      lines.push(`> *No items currently dropping*`);
+    }
+
+    // Show gainers/losers from history
+    if (analytics.gainers.length > 0) {
+      lines.push(``);
+      lines.push(`━━━━━━━━━━━━━━━━━━━━━━━━`);
+      lines.push(`🚀 **BIGGEST GAINERS** (${days}d)`);
+      lines.push(`━━━━━━━━━━━━━━━━━━━━━━━━`);
+      for (const item of analytics.gainers.slice(0, 5)) {
+        lines.push(`> • **${item.name}** — +${histFormatVal(item.gain)} (${item.field})`);
+      }
+    }
+
+    if (analytics.losers.length > 0) {
+      lines.push(``);
+      lines.push(`━━━━━━━━━━━━━━━━━━━━━━━━`);
+      lines.push(`💀 **BIGGEST LOSERS** (${days}d)`);
+      lines.push(`━━━━━━━━━━━━━━━━━━━━━━━━`);
+      for (const item of analytics.losers.slice(0, 5)) {
+        lines.push(`> • **${item.name}** — ${histFormatVal(item.loss)} (${item.field})`);
+      }
+    }
+
+    if (analytics.mostVolatile.length > 0) {
+      lines.push(``);
+      lines.push(`━━━━━━━━━━━━━━━━━━━━━━━━`);
+      lines.push(`⚡ **MOST VOLATILE** (${days}d)`);
+      lines.push(`━━━━━━━━━━━━━━━━━━━━━━━━`);
+      for (const item of analytics.mostVolatile.slice(0, 5)) {
+        lines.push(`> • **${item.name}** — ${item.count} price changes`);
+      }
+    }
+
+    // Best flips
+    if (analytics.bestFlips.length > 0) {
+      lines.push(``);
+      lines.push(`━━━━━━━━━━━━━━━━━━━━━━━━`);
+      lines.push(`💰 **BEST FLIP OPPORTUNITIES** (High demand, underpriced in Trade Hub)`);
+      lines.push(`━━━━━━━━━━━━━━━━━━━━━━━━`);
+      for (const item of analytics.bestFlips.slice(0, 5)) {
+        lines.push(`> • **${item.name}** — Buy at ${histFormatVal(item.tradeHub)}, worth ${histFormatVal(item.trueVal)} (+${item.gapPct.toFixed(0)}%)`);
+      }
+    }
+
+    const fullMsg = lines.join("\n");
+    if (fullMsg.length > 2000) {
+      await interaction.editReply(fullMsg.substring(0, 1997) + "...");
+    } else {
+      await interaction.editReply(fullMsg);
+    }
+  }
+
+  // Item history command
+  if (interaction.commandName === "history") {
+    const query = interaction.options.getString("item");
+    const days = interaction.options.getInteger("days") || 30;
+    const item = findItem(query);
+
+    if (!item) {
+      await interaction.reply({
+        content: `⚠️ Item "${query}" not found. Check spelling and try again.`,
+        ephemeral: true,
+      });
+      return;
+    }
+
+    const entries = getItemHistory(item.name, days);
+
+    const lines = [
+      `📜 **${item.name}** — Price History (last ${days} days)`,
+      ``,
+      `**Current:** TrueVal: ${histFormatVal(item.trueVal)} | Trade Hub: ${histFormatVal(item.tradeHub)} | Proto: ${item.proto || "N/A"} | Demand: ${item.demand} | Trend: ${item.trend}`,
+      ``,
+    ];
+
+    if (entries.length === 0) {
+      lines.push(`*No price changes recorded in the last ${days} days.*`);
+      lines.push(`*History starts accumulating after the bot detects value changes.*`);
+    } else {
+      lines.push(`━━━━━━━━━━━━━━━━━━━━━━━━`);
+      lines.push(`📊 **${entries.length} changes recorded:**`);
+      lines.push(`━━━━━━━━━━━━━━━━━━━━━━━━`);
+
+      for (const entry of entries.slice(-15)) { // Show last 15 changes
+        const date = new Date(entry.timestamp).toLocaleString("en-GB", {
+          timeZone: "Asia/Jakarta",
+          day: "numeric",
+          month: "short",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        });
+        const changeStr = entry.changes
+          .map((c) => `${c.field}: ${c.before} → **${c.after}**`)
+          .join(" | ");
+        lines.push(`> \`${date}\` ${changeStr}`);
+      }
+
+      if (entries.length > 15) {
+        lines.push(`> *...${entries.length - 15} older changes not shown*`);
+      }
+    }
+
+    const fullMsg = lines.join("\n");
+    if (fullMsg.length > 2000) {
+      await interaction.reply(fullMsg.substring(0, 1997) + "...");
+    } else {
+      await interaction.reply(fullMsg);
+    }
+  }
+
   // Help command
   if (interaction.commandName === "help") {
     const helpText = [
@@ -574,6 +734,12 @@ client.on("interactionCreate", async (interaction) => {
       ``,
       `**\`/value\`** — Look up an item's value`,
       `> \`/value item: Evangeline\``,
+      ``,
+      `**\`/market\`** — Market analytics (top items, flips, trends)`,
+      `> \`/market\` or \`/market days: 30\``,
+      ``,
+      `**\`/history\`** — Price history for an item`,
+      `> \`/history item: Evangeline\` or \`/history item: c3 days: 14\``,
       ``,
       `**\`/sync\`** — Force refresh values from game.guide`,
       ``,
@@ -590,12 +756,9 @@ client.on("interactionCreate", async (interaction) => {
       `━━━━━━━━━━━━━━━━━━━━━━━━`,
       `🔍 **FLEXIBLE NAMES**`,
       `━━━━━━━━━━━━━━━━━━━━━━━━`,
-      `You don't need exact names! Examples:`,
-      `> \`c3\` → Curse III`,
-      `> \`c4\` → Curse IV`,
+      `> \`c3\` → Curse III | \`c4\` → Curse IV`,
       `> \`stb\` → Slime Trade Booth`,
-      `> \`evan\` → Evangeline`,
-      `> \`crev\` → Cthulu's Revenge`,
+      `> \`evan\` → Evangeline | \`crev\` → Cthulu's Revenge`,
       `> \`rb sera\` → Seraphic Rainbow`,
       `> \`slime booth\` → Slime Trade Booth`,
       `> \`heavy glory\` → Heavyblade of Glory`,
@@ -615,11 +778,10 @@ client.on("interactionCreate", async (interaction) => {
       `💡 **TIPS**`,
       `━━━━━━━━━━━━━━━━━━━━━━━━`,
       `• Values auto-update every hour from game.guide`,
-      `• 📈 Rising items are worth more than listed`,
-      `• 📉 Dropping items are worth less than listed`,
+      `• 📈 Rising = +10% value | 📉 Dropping = -12% value`,
       `• High demand = +10% | Low demand = -10%`,
       `• Bot suggests specific items to add if trade is unfair`,
-      `• Raw value shown + adjusted value if demand/trend differs`,
+      `• History builds up over time — more data = better analytics`,
     ].join("\n");
 
     await interaction.reply({ content: helpText, ephemeral: true });

@@ -1,220 +1,119 @@
 # 🐟 Fisch Trade Assistant Bot
 
-A Discord bot that analyzes trades for the Roblox game **Fisch** using live market data from [game.guide](https://www.game.guide/fisch-value-list). Combines TrueVal, Trade Hub, Proto, Demand, and Trend into smart adjusted valuations powered by AI with local fallback.
+A Discord bot that analyzes trades for the Roblox game **Fisch** using live market data from [game.guide](https://www.game.guide/fisch-value-list). Combines TrueVal, Trade Hub, Proto, Demand, and Trend into smart adjusted valuations powered by AI with local fallback. Includes market analytics and price history tracking.
 
 ---
 
 ## 📋 Commands
 
-### `/trade`
-Analyze a trade between two players.
-
-**Parameters:**
-| Parameter | Required | Description |
-|-----------|----------|-------------|
-| `your_offer` | ✅ | Items you are offering (comma-separated) |
-| `their_offer` | ✅ | Items they are offering (comma-separated) |
-
-**Examples:**
-```
-/trade your_offer: 2 Nocturne, Scarwing their_offer: Evangeline
-/trade your_offer: 3 c3, stb their_offer: 2 c4
-/trade your_offer: slime booth, eye seraph their_offer: crev
-```
+| Command | Description |
+|---------|-------------|
+| `/trade` | Analyze a trade (AI + local fallback) |
+| `/value` | Look up a single item's value |
+| `/market` | Market analytics: top items, trends, flips |
+| `/history` | Price change history for an item |
+| `/sync` | Force refresh values from game.guide |
+| `/help` | Show usage guide in Discord |
 
 ---
 
-### `/value`
-Look up a single item's full stats and adjusted value.
+## 🎯 Features
 
-**Examples:**
-```
-/value item: Evangeline
-/value item: c3
-/value item: slime booth
-```
-
----
-
-### `/sync`
-Manually sync item values from game.guide (values also auto-update every hour).
-
----
-
-### `/help`
-Show a quick usage guide inside Discord (only visible to you).
+- **AI Trade Analysis** — Gemini AI combines all metrics for nuanced verdicts (with local formula fallback)
+- **Smart Fuzzy Matching** — `c3`, `slime booth`, `crev`, typos all work
+- **Quantity Support** — `3 Nocturne`, `3x c3`, `4 curse 4`
+- **Market Analytics** — Top items, rising/dropping, best flips, volatility
+- **Price History** — Track how items change over 90 days
+- **Auto-Sync** — Scrapes 1050+ items every hour from game.guide
+- **Change Notifications** — Posts value changes to a Discord channel (📈 UP / 📉 DOWN separated)
+- **Item Suggestions** — Recommends specific items to add for unfair trades
 
 ---
 
 ## 🔢 Quantity Format
 
-Quantity goes on the **left side only**:
+Quantity goes **before** the item name only:
 
-| Format | Example | Result |
-|--------|---------|--------|
-| Number before name | `3 Nocturne` | 3× Nocturne |
-| Nx before name | `3x Scarwing` | 3× Scarwing |
-| With aliases | `4 c4` | 4× Curse IV |
-| With aliases | `3 c3` | 3× Curse III |
-| No number (default 1) | `Evangeline` | 1× Evangeline |
-
-Separate multiple items with commas:
 ```
-3 c3, 2 Nocturne, Scarwing
+3 Nocturne       → 3× Nocturne
+3x Scarwing      → 3× Scarwing
+4 curse 4        → 4× Curse IV
+3 c3             → 3× Curse III
 ```
-
-Max quantity per item: 1,000,000
 
 ---
 
 ## 🔍 Flexible Item Names
 
-The bot uses smart fuzzy matching. You don't need exact names.
-
-### Aliases (shorthand)
-
-| Shorthand | Matches |
-|-----------|---------|
-| `c1` | Curse I |
-| `c2` | Curse II |
-| `c3` or `c 3` | Curse III |
-| `c4` or `c 4` | Curse IV |
+| Input | Matches |
+|-------|---------|
+| `c3`, `c4` | Curse III, Curse IV |
 | `stb` | Slime Trade Booth |
-| `rb` | Seraphic Rainbow |
-
-### Shortened names
-| You type | Matches |
-|----------|---------|
 | `evan` | Evangeline |
-| `noc` | Nocturne |
-| `reaper` | The Reaper |
-| `cuddly` | Cuddly Claw |
-| `fuchsia` | Fuchsia Fidelity |
-| `malev` | Malevolence |
-| `cathedral` | Cathedral Booth |
-
-### Partial words (unordered)
-| You type | Matches |
-|----------|---------|
+| `crev` | Cthulu's Revenge |
+| `rb sera` | Seraphic Rainbow |
 | `slime booth` | Slime Trade Booth |
 | `heavy glory` | Heavyblade of Glory |
-| `eye seraph` | Eye of Seraph |
-| `purr rebel` | Purr of Rebellion |
-| `black com` | Black Comet |
-| `rb sera` | Seraphic Rainbow |
-| `blk comet` | Black Comet |
-| `cy demo` | Cyanic Demonride |
-
-### Condensed names (multi-word abbreviation)
-| You type | Matches |
-|----------|---------|
-| `crev` | Cthulu's Revenge (**C**thulu's **Rev**enge) |
-| `treaper` | The Reaper (**T**he **Reaper**) |
-| `pheaven` | Puff of Heaven (**P**uff **Heaven**) |
-| `cdemon` | Cyanic Demonride (**C**yanic **Demon**ride) |
-
-### Without apostrophes
-| You type | Matches |
-|----------|---------|
+| `pheaven` | Puff of Heaven |
+| `pearsickle` | Pearsicle (typo) |
 | `dutchmans` | Dutchman's Penance |
-| `ravens hush` | Raven's Hush |
-| `sanzus embrace` | Sanzu's Embrace |
-| `cthulu revenge` | Cthulu's Revenge |
 
-### Typos (auto-corrected)
-| You type | Matches |
-|----------|---------|
-| `pearsickle` | Pearsicle |
-| `scarwng` | Scarwing |
-| `evangline` | Evangeline |
-| `nocturn` | Nocturne |
-
-### Matching priority order
-1. Aliases (`c3`, `stb`, `rb`)
-2. Number → Roman numeral conversion (`curse 3` → `curse iii`)
-3. Exact match
-4. Exact match (ignoring apostrophes/dashes)
-5. All query words found in item name
-6. Initials abbreviation
-7. Substring match
-8. Word-start sequential match
-9. Word-start unordered with short abbreviations
-10. Single word prefix match
-11. Condensed multi-word abbreviation
-12. Typo tolerance (Levenshtein distance)
+**Matching priority:** Aliases → Roman numeral conversion → Exact → Words match → Initials → Substring → Word-start → Unordered prefix → Prefix → Condensed → Levenshtein typo tolerance
 
 ---
 
-## 📊 How Valuation Works
-
-The bot calculates an **Adjusted Value** for each item:
+## 📊 Valuation
 
 ```
 Adjusted Value = Base Value × Demand Multiplier × Trend Multiplier
 ```
 
-**Base Value priority:**
-1. TrueVal (if available)
-2. Trade Hub (if TrueVal is N/A)
-3. Proto estimate (Proto × multiplier based on demand)
-
-**Demand Multipliers:**
-| Demand | Multiplier | Effect |
-|--------|-----------|--------|
-| Limited | ×1.25 | +25% (extremely rare) |
-| High | ×1.10 | +10% |
-| Medium | ×1.00 | No change |
-| Low | ×0.90 | -10% |
-| Very Low | ×0.80 | -20% |
-
-**Trend Multipliers:**
-| Trend | Multiplier | Effect |
-|-------|-----------|--------|
-| Rising 📈 | ×1.10 | +10% |
-| Stable ➡️ | ×1.00 | No change |
-| Dropping 📉 | ×0.88 | -12% |
-| Unstable ⚡ | ×0.95 | -5% |
-
-**Output format:**
-- If adjusted = raw: shows `S$ 400.0K`
-- If adjusted ≠ raw: shows `S$ 400.0K → Adj: S$ 360.0K`
+| Demand | Multiplier | | Trend | Multiplier |
+|--------|-----------|---|-------|-----------|
+| Limited | ×1.25 | | Rising 📈 | ×1.10 |
+| High | ×1.10 | | Stable ➡️ | ×1.00 |
+| Medium | ×1.00 | | Dropping 📉 | ×0.88 |
+| Low | ×0.90 | | Unstable ⚡ | ×0.95 |
+| Very Low | ×0.80 | | | |
 
 ---
 
-## 📊 Verdict Scale
+## 📈 Market Analytics (`/market`)
 
-| Verdict | Condition | Meaning |
-|---------|-----------|---------|
-| 🟢🟢 **BIG WIN** | Their offer > 40% more | Accept immediately |
-| 🟢 **WIN** | Their offer 15-40% more | Good trade, accept |
-| 🟡 **FAIR** | Within ±15% | Roughly even |
-| 🔴 **LOSS** | Your offer 15-40% more | Ask them to add |
-| 🔴🔴 **BIG LOSS** | Your offer > 40% more | Decline |
-
-**Item suggestions:**
-- LOSS/BIG LOSS → Bot suggests specific items they should add to make it fair
-- FAIR → Bot suggests items they could add to make it a WIN for you
+- 🏆 Top 10 most valuable items
+- 📈 Currently rising items
+- 📉 Currently dropping items
+- 🚀 Biggest price gainers (historical)
+- 💀 Biggest price losers (historical)
+- ⚡ Most volatile items (most frequent changes)
+- 💰 Best flip opportunities (High demand + underpriced in Trade Hub)
 
 ---
 
-## 🤖 AI vs Local Analysis
+## 📜 Price History (`/history`)
 
-| Mode | When | Features |
-|------|------|----------|
-| **AI (Gemini)** | When API quota available | Nuanced context-aware analysis |
-| **Local** | When AI quota exceeded | Formula-based with item suggestions |
+Tracks every value change per item over 90 days:
+- Shows current values
+- Lists all recorded changes with timestamps (WIB timezone)
+- Each entry shows field: before → after
 
-Auto-switches to local mode on rate limits. Users see `⚡ Analyzed locally` footer.
+History accumulates automatically from hourly syncs.
 
 ---
 
-## ⏰ Auto-Sync
+## 🔔 Change Notifications
 
-- Values sync from game.guide **every 1 hour** automatically
-- Also syncs on bot startup
-- Use `/sync` for manual refresh
-- Falls back to cached data if scrape fails
-- Scrapes 1000+ items including boats, rods, bobbers, gliders, booths, lanterns, halos
+Posts to a Discord channel when values change during sync:
+
+```
+📢 FISCH VALUE UPDATE — 11 Jun 2026, 14:00 WIB
+
+📈 VALUE UP (3)
+> • Nocturne — TrueVal: S$ 4.00M → S$ 4.20M
+
+📉 VALUE DOWN (2)
+> • Curse III — Trade Hub: S$ 600.0K → S$ 572.0K
+```
 
 ---
 
@@ -222,11 +121,13 @@ Auto-switches to local mode on rate limits. Users see `⚡ Analyzed locally` foo
 
 1. Create a Discord bot at [discord.com/developers](https://discord.com/developers/applications)
 2. Get a Gemini API key at [aistudio.google.com/apikey](https://aistudio.google.com/apikey)
-3. Fill in `.env`:
+3. Fill in `.env` or Railway environment variables:
    ```
    DISCORD_TOKEN=your_bot_token
    CLIENT_ID=your_application_id
    GEMINI_API_KEY=your_gemini_key
+   NOTIFICATION_CHANNEL_ID=your_channel_id
+   VOLUME_PATH=./data
    ```
 4. Install & run:
    ```bash
@@ -235,15 +136,44 @@ Auto-switches to local mode on rate limits. Users see `⚡ Analyzed locally` foo
    npm start         # Start the bot
    ```
 
-**Deploy on Railway (24/7):**
+---
+
+## 🚀 Deploy on Railway (24/7)
+
 1. Push code to GitHub (without `.env`)
 2. Connect repo to [railway.app](https://railway.app)
 3. Add environment variables in Railway settings
-4. Auto-deploys on every push
+4. Add a **Volume** (mount path: `/data`) for persistent history storage
+5. Set `VOLUME_PATH=/data` in Railway env vars
+6. Auto-deploys on every push
 
-**Or keep running locally with PM2:**
-```bash
-npm install -g pm2
-pm2 start index.js --name fisch-bot
-pm2 save
+---
+
+## 📁 Project Structure
+
 ```
+├── index.js            # Main bot + commands
+├── analyzer.js         # Local trade analysis (formula-based)
+├── scraper.js          # game.guide scraper + change detection
+├── history.js          # Historical data storage + analytics
+├── values.js           # Fallback hardcoded values
+├── deploy-commands.js  # Register slash commands
+├── package.json
+├── .env                # Environment variables
+├── data/
+│   ├── values.json     # Current scraped values
+│   └── history.json    # Price change history (90 days)
+├── README.md           # This file
+└── COMMANDS.md         # User-facing documentation
+```
+
+---
+
+## 🤖 AI vs Local Mode
+
+| Mode | When | Features |
+|------|------|----------|
+| **AI (Gemini)** | API quota available | Nuanced context-aware analysis |
+| **Local** | AI quota exceeded | Formula-based, instant, with item suggestions |
+
+Auto-switches on rate limits. Users see `⚡ Analyzed locally` footer when in local mode.

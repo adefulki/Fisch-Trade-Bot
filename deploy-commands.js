@@ -8,7 +8,7 @@ const commands = [
     .addStringOption((option) =>
       option
         .setName("your_offer")
-        .setDescription("Your items (comma-separated, e.g. Nocturne, Scarwing)")
+        .setDescription("Your items (comma-separated, e.g. 2 Nocturne, Scarwing)")
         .setRequired(true)
     )
     .addStringOption((option) =>
@@ -23,12 +23,36 @@ const commands = [
     .addStringOption((option) =>
       option
         .setName("item")
-        .setDescription("Item name (e.g. Evangeline)")
+        .setDescription("Item name (e.g. Evangeline, c3, slime booth)")
         .setRequired(true)
     ),
   new SlashCommandBuilder()
+    .setName("market")
+    .setDescription("Show market analytics: top items, rising/dropping, best flips")
+    .addIntegerOption((option) =>
+      option
+        .setName("days")
+        .setDescription("Number of days to analyze (default: 7)")
+        .setRequired(false)
+    ),
+  new SlashCommandBuilder()
+    .setName("history")
+    .setDescription("Show price history for a specific item")
+    .addStringOption((option) =>
+      option
+        .setName("item")
+        .setDescription("Item name (e.g. Evangeline, c3)")
+        .setRequired(true)
+    )
+    .addIntegerOption((option) =>
+      option
+        .setName("days")
+        .setDescription("Number of days to look back (default: 30)")
+        .setRequired(false)
+    ),
+  new SlashCommandBuilder()
     .setName("sync")
-    .setDescription("Manually sync values from game.guide (admin only)"),
+    .setDescription("Manually sync values from game.guide"),
   new SlashCommandBuilder()
     .setName("help")
     .setDescription("Show bot commands and usage guide"),
