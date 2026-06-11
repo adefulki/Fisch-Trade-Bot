@@ -20,6 +20,7 @@ const syncCmd = require("./commands/sync");
 const helpCmd = require("./commands/help");
 const aboutCmd = require("./commands/about");
 const chartCmd = require("./commands/chart");
+const subscribeCmd = require("./commands/subscribe");
 
 /** Discord client with required intents */
 const client = new Client({
@@ -110,6 +111,12 @@ client.on("interactionCreate", async (interaction) => {
         break;
       case "chart":
         await chartCmd.execute(interaction);
+        break;
+      case "subscribe":
+        await subscribeCmd.executeSubscribe(interaction);
+        break;
+      case "unsubscribe":
+        await subscribeCmd.executeUnsubscribe(interaction);
         break;
       default:
         break;

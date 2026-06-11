@@ -1,0 +1,88 @@
+/**
+ * /subscribe and /unsubscribe commands — Manage value change notifications for a server.
+ * Only users with Manage Channels permission can subscribe/unsubscribe.
+ */
+
+const { EmbedBuilder, PermissionFlagsBits } = require("discord.js");
+const { subscribe, unsubscribe, getSubscription } = require("../data/subscriptions");
+
+/**
+ * Handle the /subscribe slash command.
+ * Subscribes the current (or specified) channel to receive value change alerts.
+ * @param {object} interaction - Discord interaction object
+ */
+async function executeSubscribe(interaction) {
+  // Check permissions — only admins/mods can subscribe
+  if (!interaction.memberPermissions.has(PermissionFlagsBits.ManageChannels)) {
+    await interaction.reply({
+      content: "⚠️ You need **Manage Channels** permission to subscribe to notifications.",
+      ephemeral: true,
+    });
+    return;
+  }
+
+  const channel = interaction.options.getChannel("channel") || interaction.channel;
+
+  // Verify it's a text channel
+  if (!channel.isTextBased()) {
+    await interaction.reply({
+      content: "⚠️ Please select a text channel.",
+      ephemeral: true,
+    });
+    return;
+  }
+
+  const { replaced } = subscribe(interaction.guildId, channel.id, interaction.user.id);
+
+  const embed = new EmbedBuilder()
+    .setTitle("🔔 Notifications Subscribed")
+    .setDescription(
+      `Value change alerts will be posted to <#${channel.id}>.\n\n` +
+      `When item values change on game.guide, this channel will receive:\n` +
+      `> 📈 Items going up in value\n` +
+      `> 📉 Items going down in value\n` +
+      `> 🆕 New items added\n\n` +
+      (replaced ? `*Previous subscription replaced.*` : `*Use \`/unsubscribe\` to stop notifications.*`)
+    )
+    .setColor(0x00ff00)
+    .setFooter({ text: `Subscribed by ${interaction.user.tag}` })
+    .setTimestamp();
+
+  await interaction.reply({ embeds: [embed] });
+}
+
+/**
+ * Handle the /unsubscribe slash command.
+ * Removes this server's notification subscription.
+ * @param {object} interaction - Discord interaction object
+ */
+async function executeUnsubscribe(interaction) {
+  // Check permissions
+  if (!interaction.memberPermissions.has(PermissionFlagsBits.ManageChannels)) {
+    await interaction.reply({
+      content: "⚠️ You need **Manage Channels** permission to unsubscribe.",
+      ephemeral: true,
+    });
+    return;
+  }
+
+  const removed = unsubscribe(interaction.guildId);
+
+  if (removed) {
+    await interaction.reply({
+      embeds: [
+        new EmbedBuilder()
+          .setTitle("🔕 Notifications Unsubscribed")
+          .setDescription("This server will no longer receive value change alerts.")
+          .setColor(0xff4500),
+      ],
+    });
+  } else {
+    await interaction.reply({
+      content: "This server doesn't have an active subscription.",
+      ephemeral: true,
+    });
+  }
+}
+
+module.exports = { executeSubscribe, executeUnsubscribe };

@@ -1,40 +1,48 @@
 # 🐟 Fisch Trade Assistant Bot
 
-A Discord bot that analyzes trades for the Roblox game **Fisch** using live market data from [game.guide](https://www.game.guide/fisch-value-list). Combines TrueVal, Trade Hub, Proto, Demand, and Trend into smart adjusted valuations powered by AI with local fallback. Includes market analytics and price history tracking.
+A Discord bot that analyzes trades for the Roblox game **Fisch** using live market data from [game.guide](https://www.game.guide/fisch-value-list). Combines TrueVal, Trade Hub, Proto, Demand, and Trend into smart adjusted valuations powered by AI with local fallback.
 
 ---
 
-## 📋 Commands
+# 👤 For Users
+
+## Add the Bot to Your Server
+
+[Click here to invite the bot](https://discord.com/oauth2/authorize?client_id=1513696596435402752&permissions=2147485696&scope=bot+applications.commands)
+
+That's it — all commands work immediately after inviting.
+
+---
+
+## Commands
 
 | Command | Description |
 |---------|-------------|
-| `/trade` | Analyze a trade (AI + local fallback) |
+| `/trade` | Analyze a trade between two players |
 | `/value` | Look up a single item's value |
 | `/market` | Market analytics: top items, trends, flips |
 | `/history` | Price change history for an item |
-| `/sync` | Force refresh values from game.guide |
-| `/help` | Show usage guide in Discord |
-| `/about` | Show bot info and creator details |
-| `/chart` | Show a price chart for an item over time |
+| `/chart` | Visual price chart over time |
+| `/subscribe` | Get value change alerts in a channel |
+| `/unsubscribe` | Stop value change alerts |
+| `/help` | Show quick usage guide |
+| `/about` | Bot info and creator details |
 
 ---
 
-## 🎯 Features
+## How to Trade
 
-- **AI Trade Analysis** — Gemini AI combines all metrics for nuanced verdicts (with local formula fallback)
-- **Smart Fuzzy Matching** — `c3`, `slime booth`, `crev`, typos all work
-- **Quantity Support** — `3 Nocturne`, `3x c3`, `4 curse 4`
-- **Market Analytics** — Top items, rising/dropping, best flips, volatility
-- **Price History** — Track how items change over 90 days
-- **Auto-Sync** — Scrapes 1050+ items every hour from game.guide
-- **Change Notifications** — Posts value changes to a Discord channel (📈 UP / 📉 DOWN separated)
-- **Item Suggestions** — Recommends specific items to add for unfair trades
+```
+/trade your_offer: 2 Nocturne, Scarwing their_offer: Evangeline
+```
+
+The bot will tell you if it's a **WIN**, **FAIR**, or **LOSS** — and suggest specific items to add if it's unfair.
 
 ---
 
-## 🔢 Quantity Format
+## Quantity Format
 
-Quantity goes **before** the item name only:
+Put the number **before** the item name:
 
 ```
 3 Nocturne       → 3× Nocturne
@@ -43,127 +51,170 @@ Quantity goes **before** the item name only:
 3 c3             → 3× Curse III
 ```
 
+Separate multiple items with commas: `3 c3, 2 Nocturne, Scarwing`
+
 ---
 
-## 🔍 Flexible Item Names
+## Flexible Item Names
 
-| Input | Matches |
-|-------|---------|
+You don't need exact names. The bot understands:
+
+| You type | Gets |
+|----------|------|
 | `c3`, `c4` | Curse III, Curse IV |
 | `stb` | Slime Trade Booth |
 | `evan` | Evangeline |
+| `noc` | Nocturne |
 | `crev` | Cthulu's Revenge |
 | `rb sera` | Seraphic Rainbow |
 | `slime booth` | Slime Trade Booth |
 | `heavy glory` | Heavyblade of Glory |
 | `pheaven` | Puff of Heaven |
-| `pearsickle` | Pearsicle (typo) |
+| `reaper` | The Reaper |
+| `pearsickle` (typo) | Pearsicle |
 | `dutchmans` | Dutchman's Penance |
 
-**Matching priority:** Aliases → Roman numeral conversion → Exact → Words match → Initials → Substring → Word-start → Unordered prefix → Prefix → Condensed → Levenshtein typo tolerance
+---
+
+## Verdict Scale
+
+| Verdict | Meaning | Action |
+|---------|---------|--------|
+| 🟢🟢 **BIG WIN** | You're getting way more value | Accept immediately |
+| 🟢 **WIN** | Trade favors you | Accept |
+| 🟡 **FAIR** | Roughly equal (±15%) | Accept if you prefer their items |
+| 🔴 **LOSS** | You're giving more value | Ask them to add |
+| 🔴🔴 **BIG LOSS** | Massive value gap | Decline |
 
 ---
 
-## 📊 Valuation
+## Value Change Notifications
+
+Server admins can subscribe a channel to get automatic alerts when values change:
 
 ```
-Adjusted Value = Base Value × Demand Multiplier × Trend Multiplier
+/subscribe                    → subscribe current channel
+/subscribe channel: #updates  → subscribe a specific channel
+/unsubscribe                  → stop alerts
 ```
 
-| Demand | Multiplier | | Trend | Multiplier |
-|--------|-----------|---|-------|-----------|
-| Limited | ×1.25 | | Rising 📈 | ×1.10 |
-| High | ×1.10 | | Stable ➡️ | ×1.00 |
-| Medium | ×1.00 | | Dropping 📉 | ×0.88 |
-| Low | ×0.90 | | Unstable ⚡ | ×0.95 |
-| Very Low | ×0.80 | | | |
+Requires **Manage Channels** permission. One channel per server.
 
 ---
 
-## 📈 Market Analytics (`/market`)
+## Market Analytics
 
+Use `/market` to see:
 - 🏆 Top 10 most valuable items
 - 📈 Currently rising items
 - 📉 Currently dropping items
-- 🚀 Biggest price gainers (historical)
-- 💀 Biggest price losers (historical)
-- ⚡ Most volatile items (most frequent changes)
-- 💰 Best flip opportunities (High demand + underpriced in Trade Hub)
+- 🚀 Biggest gainers / 💀 Biggest losers
+- ⚡ Most volatile items
+- 💰 Best flip opportunities
+
+Navigate pages with ⏮ ◀ ▶ ⏭ buttons.
 
 ---
 
-## 📜 Price History (`/history`)
-
-Tracks every value change per item over 90 days:
-- Shows current values
-- Lists all recorded changes with timestamps (WIB timezone)
-- Each entry shows field: before → after
-
-History accumulates automatically from hourly syncs.
-
----
-
-## 🔔 Change Notifications
-
-Posts to a Discord channel when values change during sync:
+## Price Charts
 
 ```
-📢 FISCH VALUE UPDATE — 11 Jun 2026, 14:00 WIB
+/chart item: Evangeline days: 30
+```
 
-📈 VALUE UP (3)
-> • Nocturne — TrueVal: S$ 4.00M → S$ 4.20M
+Shows a line chart of the item's price over time with current value, high, low, and total change.
 
-📉 VALUE DOWN (2)
-> • Curse III — Trade Hub: S$ 600.0K → S$ 572.0K
+---
+
+## How Values Are Calculated
+
+```
+Adjusted Value = Raw Value × Demand × Trend
+```
+
+| Demand | Effect | | Trend | Effect |
+|--------|--------|---|-------|--------|
+| Limited | +25% | | 📈 Rising | +10% |
+| High | +10% | | ➡️ Stable | 0% |
+| Medium | 0% | | 📉 Dropping | -12% |
+| Low | -10% | | ⚡ Unstable | -5% |
+| Very Low | -20% | | | |
+
+High demand items sell fast and trade above listed price. Low demand items are harder to sell.
+
+---
+
+## Tips
+
+- Values update every hour automatically from game.guide
+- Use `/market` to find flip opportunities before trading
+- Use `/history` or `/chart` to check trends before accepting
+- Bot suggests specific items to add when a trade is unfair
+- If you see `⚡ Analyzed locally` — AI is on cooldown, results still accurate
+
+---
+
+---
+
+# 🛠️ For Developers
+
+## Setup
+
+### Prerequisites
+- Node.js 18+
+- Discord Bot Token ([discord.com/developers](https://discord.com/developers/applications))
+- Gemini API Key ([aistudio.google.com/apikey](https://aistudio.google.com/apikey))
+
+### Installation
+
+```bash
+git clone https://github.com/adefulki/fisch-trade-bot.git
+cd fisch-trade-bot
+npm install
+```
+
+### Environment Variables
+
+Create `.env`:
+```
+DISCORD_TOKEN=your_bot_token
+CLIENT_ID=your_application_id
+GEMINI_API_KEY=your_gemini_key
+NOTIFICATION_CHANNEL_ID=your_channel_id
+VOLUME_PATH=./data
+```
+
+### Run
+
+```bash
+npm run deploy    # Register slash commands (once)
+npm start         # Start the bot
 ```
 
 ---
 
-## 🛠️ Setup
-
-1. Create a Discord bot at [discord.com/developers](https://discord.com/developers/applications)
-2. Get a Gemini API key at [aistudio.google.com/apikey](https://aistudio.google.com/apikey)
-3. Fill in `.env` or Railway environment variables:
-   ```
-   DISCORD_TOKEN=your_bot_token
-   CLIENT_ID=your_application_id
-   GEMINI_API_KEY=your_gemini_key
-   NOTIFICATION_CHANNEL_ID=your_channel_id
-   VOLUME_PATH=./data
-   ```
-4. Install & run:
-   ```bash
-   npm install
-   npm run deploy    # Register slash commands (once)
-   npm start         # Start the bot
-   ```
-
----
-
-## 🚀 Deploy on Railway (24/7)
+## Deploy on Railway (24/7)
 
 1. Push code to GitHub (without `.env`)
 2. Connect repo to [railway.app](https://railway.app)
 3. Add environment variables in Railway settings
-4. Add a **Volume** (mount path: `/data`) for persistent history storage
+4. Add a **Volume** (mount path: `/data`) for persistent storage
 5. Set `VOLUME_PATH=/data` in Railway env vars
 6. Auto-deploys on every push
 
 ---
 
-## 📁 Project Structure
+## Architecture
 
 ```
 ├── index.js                  # Entry point
 ├── deploy-commands.js        # Register slash commands
 ├── values.js                 # Fallback hardcoded values
 ├── package.json
-├── .env
-├── README.md
-├── COMMANDS.md
 ├── data/
 │   ├── values.json           # Current scraped data
-│   └── history.json          # Price change history (90 days)
+│   ├── history.json          # Price change history (90 days)
+│   └── subscriptions.json    # Server notification subscriptions
 └── src/
     ├── bot.js                # Discord client, cron, command router
     ├── commands/
@@ -171,35 +222,70 @@ Posts to a Discord channel when values change during sync:
     │   ├── value.js          # /value
     │   ├── market.js         # /market (paginated)
     │   ├── history.js        # /history
-    │   ├── chart.js          # /chart (price chart image)
+    │   ├── chart.js          # /chart (QuickChart image)
+    │   ├── subscribe.js      # /subscribe + /unsubscribe
     │   ├── sync.js           # /sync
     │   ├── help.js           # /help
     │   └── about.js          # /about
     ├── services/
-    │   ├── ai.js             # Gemini AI integration
-    │   ├── analyzer.js       # Local trade valuation
-    │   ├── matcher.js        # Fuzzy item matching
-    │   ├── notifier.js       # Discord notifications
-    │   ├── scraper.js        # game.guide scraper
-    │   └── chart.js          # QuickChart.io chart generation
+    │   ├── ai.js             # Gemini AI integration + fallback
+    │   ├── analyzer.js       # Local trade valuation formulas
+    │   ├── matcher.js        # Fuzzy item name matching
+    │   ├── notifier.js       # Multi-channel notifications
+    │   ├── scraper.js        # game.guide scraper + diff detection
+    │   └── chart.js          # QuickChart.io URL generation
     ├── data/
-    │   └── history.js        # Historical data + analytics
+    │   ├── history.js        # Historical data storage + analytics
+    │   └── subscriptions.js  # Notification subscription manager
     └── utils/
         ├── constants.js      # Multipliers, aliases, roman numerals
-        ├── format.js         # Value formatting helpers
-        └── discord.js        # Embed, pagination, message splitting
+        ├── format.js         # Value formatting (S$ 4.5M, etc.)
+        └── discord.js        # Embeds, pagination, message splitting
 ```
 
 ---
 
-## 🤖 AI vs Local Mode
+## Key Technical Details
 
-| Mode | When | Features |
-|------|------|----------|
-| **AI (Gemini)** | API quota available | Nuanced context-aware analysis |
-| **Local** | AI quota exceeded | Formula-based, instant, with item suggestions |
+### AI vs Local Mode
+| Mode | When | How |
+|------|------|-----|
+| AI (Gemini) | API quota available | Sends all item data to Gemini for analysis |
+| Local | Quota exceeded (auto-fallback) | Formula: `value × demand × trend` |
 
-Auto-switches on rate limits. Users see `⚡ Analyzed locally` footer when in local mode.
+Auto-switches on 429 errors. 5-minute cooldown before retrying AI.
+
+### Data Sync
+- Cron: every hour (`0 * * * *`)
+- Scrapes 1050+ items from game.guide
+- Detects changes by comparing with previous data
+- Records diffs to history (kept 90 days, auto-pruned)
+- Posts notifications to all subscribed channels
+
+### Fuzzy Matching Priority
+1. Aliases (`c3` → Curse III)
+2. Number → Roman numeral (`curse 3` → `curse iii`)
+3. Exact match
+4. Clean match (strip apostrophes)
+5. All-words-in-name match
+6. Initials abbreviation
+7. Substring match
+8. Sequential word-start prefix
+9. Unordered word-start prefix (short abbreviations)
+10. Single word prefix
+11. Condensed multi-word split
+12. Levenshtein typo tolerance (30% threshold)
+
+### Notifications
+- Posts to `NOTIFICATION_CHANNEL_ID` (env) + all `/subscribe` channels
+- Separates changes into 📈 UP / 📉 DOWN / 🔄 OTHER
+- Splits long messages for Discord's 2000 char limit
+- 5-minute cooldown prevents duplicate posts
+
+### Charts
+- Generated via QuickChart.io (free, no dependencies)
+- Embedded as image URL in Discord embed
+- Dark theme matching Discord's background
 
 ---
 

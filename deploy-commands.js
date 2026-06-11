@@ -74,6 +74,18 @@ const commands = [
         .setDescription("Number of days to chart (default: 30)")
         .setRequired(false)
     ),
+  new SlashCommandBuilder()
+    .setName("subscribe")
+    .setDescription("Subscribe this channel to receive value change notifications")
+    .addChannelOption((option) =>
+      option
+        .setName("channel")
+        .setDescription("Channel to post notifications (default: current channel)")
+        .setRequired(false)
+    ),
+  new SlashCommandBuilder()
+    .setName("unsubscribe")
+    .setDescription("Stop receiving value change notifications in this server"),
 ].map((cmd) => cmd.toJSON());
 
 const rest = new REST({ version: "10" }).setToken(process.env.DISCORD_TOKEN);

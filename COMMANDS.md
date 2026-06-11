@@ -121,6 +121,29 @@ Show a visual price chart for an item's value over time. Requires at least 2 rec
 
 ---
 
+### /subscribe
+Subscribe a channel in your server to receive value change notifications. Requires **Manage Channels** permission.
+
+**Usage:**
+```
+/subscribe                    → subscribes current channel
+/subscribe channel: #updates  → subscribes a specific channel
+```
+
+Only one channel per server. Running again replaces the previous subscription.
+
+---
+
+### /unsubscribe
+Stop receiving value change notifications in this server. Requires **Manage Channels** permission.
+
+**Usage:**
+```
+/unsubscribe
+```
+
+---
+
 ## Quantity Format
 
 Quantity goes **before** the item name only:
