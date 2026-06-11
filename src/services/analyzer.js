@@ -1,30 +1,20 @@
-// Local trade analyzer - works WITHOUT AI
-// Combines TrueVal, Trade Hub, Proto, Demand, and Trend into a smart adjusted value
+/**
+ * Local trade analyzer.
+ * Calculates adjusted values using demand/trend multipliers and generates trade verdicts.
+ */
 
-// Demand multipliers
-const DEMAND_MULTIPLIER = {
-  "Limited": 1.25,
-  "High": 1.10,
-  "Medium": 1.00,
-  "Low": 0.90,
-  "Very Low": 0.80,
-  "-": 1.00,
-};
+const { DEMAND_MULTIPLIER, TREND_MULTIPLIER } = require("../utils/constants");
+const { formatVal, trendEmoji } = require("../utils/format");
 
-// Trend multipliers
-const TREND_MULTIPLIER = {
-  "Rising": 1.10,
-  "Stable": 1.00,
-  "Dropping": 0.88,
-  "Unstable": 0.95,
-  "-": 1.00,
-};
-
-// Calculate adjusted value for a single item
+/**
+ * Calculate the adjusted value for a single item based on its metrics.
+ * Priority: TrueVal > Trade Hub > Proto estimate.
+ * @param {object} item - Item object with trueVal, tradeHub, proto, demand, trend
+ * @returns {{value: number, source: string, adjusted: number}} Base value, source label, and adjusted value
+ */
 function getAdjustedValue(item) {
   if (!item) return { value: 0, source: "Unknown", adjusted: 0 };
 
-  // Step 1: Determine base value (priority: TrueVal > Trade Hub > Proto estimate)
   let baseValue = 0;
   let source = "";
 
@@ -35,7 +25,6 @@ function getAdjustedValue(item) {
     baseValue = item.tradeHub;
     source = "Trade Hub";
   } else if (item.proto && item.proto > 0) {
-    // Estimate from Proto based on demand
     const demandKey = item.demand || "Medium";
     const protoMultiplier =
       demandKey === "High" || demandKey === "Limited" ? 2500 :
@@ -46,35 +35,19 @@ function getAdjustedValue(item) {
     return { value: 0, source: "No data", adjusted: 0 };
   }
 
-  // Step 2: Apply demand adjustment
   const demandMult = DEMAND_MULTIPLIER[item.demand] || 1.0;
-
-  // Step 3: Apply trend adjustment
   const trendMult = TREND_MULTIPLIER[item.trend] || 1.0;
-
-  // Step 4: Calculate final adjusted value
   const adjusted = Math.round(baseValue * demandMult * trendMult);
 
   return { value: baseValue, source, adjusted };
 }
 
-// Format currency
-function formatVal(num) {
-  if (num === null || num === undefined || num === 0) return "N/A";
-  if (num >= 1000000) return `S$ ${(num / 1000000).toFixed(2)}M`;
-  if (num >= 1000) return `S$ ${(num / 1000).toFixed(1)}K`;
-  return `S$ ${num}`;
-}
-
-// Get trend emoji
-function trendEmoji(trend) {
-  if (trend === "Rising") return "📈";
-  if (trend === "Dropping") return "📉";
-  if (trend === "Unstable") return "⚡";
-  return "➡️";
-}
-
-// Determine verdict
+/**
+ * Determine the trade verdict based on total values of both sides.
+ * @param {number} leftTotal - Total adjusted value of user's offer
+ * @param {number} rightTotal - Total adjusted value of their offer
+ * @returns {{verdict: string, emoji: string}} Verdict label and emoji
+ */
 function getVerdict(leftTotal, rightTotal) {
   if (leftTotal === 0 && rightTotal === 0) return { verdict: "FAIR", emoji: "🟡" };
   const diff = rightTotal - leftTotal;
@@ -89,10 +62,13 @@ function getVerdict(leftTotal, rightTotal) {
   return { verdict: "BIG LOSS", emoji: "🔴🔴" };
 }
 
-// Find items that could fill a value gap
-// Returns a list of item suggestions that together cover the needed value
+/**
+ * Find items from the database that could fill a specific value gap.
+ * @param {number} neededValue - The value gap to fill
+ * @param {Array} allItems - Full item database
+ * @returns {Array} Suggested items with name and value
+ */
 function suggestAdds(neededValue, allItems) {
-  // Get all items with valid adjusted values, sorted by value descending
   const candidates = allItems
     .filter((i) => {
       const val = getAdjustedValue(i);
@@ -103,36 +79,42 @@ function suggestAdds(neededValue, allItems) {
 
   if (candidates.length === 0) return [];
 
+  // Try single item match first
+  const singleMatch = candidates.find(
+    (c) => c.value >= neededValue * 0.85 && c.value <= neededValue * 1.15
+  );
+  if (singleMatch) return [singleMatch];
+
+  // Greedy multi-item selection
   const suggestions = [];
   let remaining = neededValue;
-
-  // Try to find a single item that covers the gap
-  const singleMatch = candidates.find(
-    (c) => c.value >= remaining * 0.85 && c.value <= remaining * 1.15
-  );
-  if (singleMatch) {
-    return [singleMatch];
-  }
-
-  // Otherwise pick items that together fill the gap (greedy)
   for (const candidate of candidates) {
     if (remaining <= 0) break;
     if (candidate.value <= remaining * 1.1) {
       suggestions.push(candidate);
       remaining -= candidate.value;
     }
-    if (suggestions.length >= 3) break; // Max 3 suggestions
+    if (suggestions.length >= 3) break;
   }
 
   return suggestions;
 }
 
-// Generate recommendation with specific item suggestions
+/**
+ * Generate a recommendation message based on the verdict.
+ * Includes item suggestions for LOSS/FAIR verdicts.
+ * @param {string} verdict - The verdict string
+ * @param {number} leftTotal - User's total adjusted value
+ * @param {number} rightTotal - Their total adjusted value
+ * @param {Array} leftItems - User's parsed items
+ * @param {Array} rightItems - Their parsed items
+ * @param {Array} allItemsDB - Full item database for suggestions
+ * @returns {string} Formatted recommendation text
+ */
 function getRecommendation(verdict, leftTotal, rightTotal, leftItems, rightItems, allItemsDB) {
   const diff = Math.abs(rightTotal - leftTotal);
   const diffFormatted = formatVal(diff);
 
-  // Find notable items (rising/dropping)
   const allTradeItems = [...leftItems, ...rightItems].filter((i) => i.data);
   const rising = allTradeItems.filter((i) => i.data.trend === "Rising").map((i) => i.data.name);
   const dropping = allTradeItems.filter((i) => i.data.trend === "Dropping").map((i) => i.data.name);
@@ -141,16 +123,12 @@ function getRecommendation(verdict, leftTotal, rightTotal, leftItems, rightItems
   if (rising.length > 0) trendNote += ` 📈 ${rising.join(", ")} is rising in value.`;
   if (dropping.length > 0) trendNote += ` 📉 ${dropping.join(", ")} is dropping — sell sooner.`;
 
-  // Items already in the trade (exclude from suggestions)
-  const tradeItemNames = allTradeItems.map((i) => i.data.name.toLowerCase());
-
-  // Get item suggestions from the DB
+  // Item suggestions
   let itemSuggestions = "";
   if (allItemsDB && (verdict === "LOSS" || verdict === "BIG LOSS" || verdict === "FAIR")) {
-    // For LOSS/BIG LOSS: they need to add this much
-    // For FAIR: to make it a WIN, they need to add ~20% of average
+    const tradeItemNames = allTradeItems.map((i) => i.data.name.toLowerCase());
     const targetAdd = verdict === "FAIR"
-      ? Math.round((leftTotal + rightTotal) / 2 * 0.2) // 20% to swing to WIN
+      ? Math.round((leftTotal + rightTotal) / 2 * 0.2)
       : diff;
 
     const availableItems = allItemsDB.filter(
@@ -186,7 +164,14 @@ function getRecommendation(verdict, leftTotal, rightTotal, leftItems, rightItems
   }
 }
 
-// Main analysis function - returns formatted Discord message
+/**
+ * Analyze a trade locally using formula-based valuation.
+ * Returns a formatted Discord message with verdict and recommendations.
+ * @param {Array} leftItems - User's parsed items
+ * @param {Array} rightItems - Their parsed items
+ * @param {Array} allItemsDB - Full item database for suggestions
+ * @returns {string} Formatted Discord message
+ */
 function analyzeTradeLocally(leftItems, rightItems, allItemsDB) {
   let leftTotal = 0;
   let rightTotal = 0;

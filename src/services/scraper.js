@@ -1,12 +1,24 @@
+/**
+ * Web scraper for game.guide Fisch value list.
+ * Fetches, parses, detects changes, and formats notifications.
+ */
+
 const axios = require("axios");
 const cheerio = require("cheerio");
 const fs = require("fs");
 const path = require("path");
+const { formatVal } = require("../utils/format");
 
-const DATA_FILE = path.join(process.env.VOLUME_PATH || path.join(__dirname, "data"), "values.json");
+/** Path to the current values JSON file (supports Railway Volume) */
+const DATA_DIR = process.env.VOLUME_PATH || path.join(__dirname, "..", "..", "data");
+const DATA_FILE = path.join(DATA_DIR, "values.json");
 const SOURCE_URL = "https://www.game.guide/fisch-value-list";
 
-// Parse value strings like "S$ 4.5M", "S$ 300K", "N/A"
+/**
+ * Parse a value string like "S$ 4.5M", "S$ 300K" into a number.
+ * @param {string} str - The value string to parse
+ * @returns {number|null} Parsed number or null if N/A
+ */
 function parseValue(str) {
   if (!str || str === "N/A" || str === "TBD") return null;
   str = str.replace("S$", "").trim();
@@ -15,7 +27,11 @@ function parseValue(str) {
   return parseInt(str) || null;
 }
 
-// Parse proto value (can be "4K", "2.5K", or plain "725", "8.3")
+/**
+ * Parse a proto value string (can be "4K", "2.5K", or plain "725").
+ * @param {string} str - The proto string to parse
+ * @returns {number|null} Parsed proto value or null
+ */
 function parseProto(str) {
   if (!str || str === "N/A" || str === "TBD") return null;
   str = str.trim();
@@ -25,67 +41,50 @@ function parseProto(str) {
   return parseFloat(str) || null;
 }
 
-// Format value for display
-function formatVal(num) {
-  if (num === null || num === undefined) return "N/A";
-  if (num >= 1000000) return `S$ ${(num / 1000000).toFixed(2)}M`;
-  if (num >= 1000) return `S$ ${(num / 1000).toFixed(1)}K`;
-  return `S$ ${num}`;
-}
-
-// Compare two items and return list of changes
+/**
+ * Compare two item objects and return a list of field-level changes.
+ * @param {object} oldItem - Previous item state
+ * @param {object} newItem - Current item state
+ * @returns {Array<{field: string, before: string, after: string}>} List of changes
+ */
 function compareItem(oldItem, newItem) {
   const changes = [];
-
-  if (oldItem.trueVal !== newItem.trueVal) {
+  if (oldItem.trueVal !== newItem.trueVal)
     changes.push({ field: "TrueVal", before: formatVal(oldItem.trueVal), after: formatVal(newItem.trueVal) });
-  }
-  if (oldItem.tradeHub !== newItem.tradeHub) {
+  if (oldItem.tradeHub !== newItem.tradeHub)
     changes.push({ field: "Trade Hub", before: formatVal(oldItem.tradeHub), after: formatVal(newItem.tradeHub) });
-  }
-  if (oldItem.proto !== newItem.proto) {
+  if (oldItem.proto !== newItem.proto)
     changes.push({ field: "Proto", before: oldItem.proto !== null ? String(oldItem.proto) : "N/A", after: newItem.proto !== null ? String(newItem.proto) : "N/A" });
-  }
-  if (oldItem.demand !== newItem.demand) {
+  if (oldItem.demand !== newItem.demand)
     changes.push({ field: "Demand", before: oldItem.demand, after: newItem.demand });
-  }
-  if (oldItem.trend !== newItem.trend) {
+  if (oldItem.trend !== newItem.trend)
     changes.push({ field: "Trend", before: oldItem.trend, after: newItem.trend });
-  }
-
   return changes;
 }
 
-// Detect differences between old and new item lists
+/**
+ * Detect all differences between old and new item lists.
+ * @param {Array} oldItems - Previous item list
+ * @param {Array} newItems - Current item list
+ * @returns {{updated: Array, added: Array, removed: Array}} Categorized changes
+ */
 function detectChanges(oldItems, newItems) {
-  const changes = {
-    updated: [],  // { name, changes: [{ field, before, after }] }
-    added: [],    // { name, ...item }
-    removed: [],  // { name }
-  };
-
+  const changes = { updated: [], added: [], removed: [] };
   const oldMap = new Map(oldItems.map((i) => [i.name.toLowerCase(), i]));
   const newMap = new Map(newItems.map((i) => [i.name.toLowerCase(), i]));
 
-  // Check for updates and new items
   for (const newItem of newItems) {
-    const key = newItem.name.toLowerCase();
-    const oldItem = oldMap.get(key);
-
+    const oldItem = oldMap.get(newItem.name.toLowerCase());
     if (!oldItem) {
       changes.added.push(newItem);
     } else {
       const diffs = compareItem(oldItem, newItem);
-      if (diffs.length > 0) {
-        changes.updated.push({ name: newItem.name, changes: diffs });
-      }
+      if (diffs.length > 0) changes.updated.push({ name: newItem.name, changes: diffs });
     }
   }
 
-  // Check for removed items
   for (const oldItem of oldItems) {
-    const key = oldItem.name.toLowerCase();
-    if (!newMap.has(key)) {
+    if (!newMap.has(oldItem.name.toLowerCase())) {
       changes.removed.push({ name: oldItem.name });
     }
   }
@@ -93,14 +92,17 @@ function detectChanges(oldItems, newItems) {
   return changes;
 }
 
+/**
+ * Scrape the Fisch value list from game.guide.
+ * Compares against saved data to detect changes.
+ * @returns {{success: boolean, changes: object|null}} Success status and detected changes
+ */
 async function scrapeValues() {
   console.log("🔄 Scraping Fisch values from game.guide...");
 
   try {
     const { data: html } = await axios.get(SOURCE_URL, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-      },
+      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" },
       timeout: 30000,
     });
 
@@ -128,16 +130,12 @@ async function scrapeValues() {
         for (let i = 1; i <= Math.floor(rawName.length / 2) + 1; i++) {
           const candidate = rawName.substring(0, i).trim();
           const rest = rawName.substring(i).trim();
-          if (candidate === rest) {
-            itemName = candidate;
-            break;
-          }
+          if (candidate === rest) { itemName = candidate; break; }
         }
       }
 
       itemName = itemName.replace(/^NEW\s*/i, "").trim();
       itemName = itemName.replace(/^\?\s*/, "").trim();
-
       if (!itemName || itemName.length < 2) return;
 
       const item = {
@@ -149,16 +147,12 @@ async function scrapeValues() {
         trend: trendMatch ? trendMatch[1] : "-",
       };
 
-      const exists = items.find(
-        (i) => i.name.toLowerCase() === item.name.toLowerCase()
-      );
-      if (!exists) {
-        items.push(item);
-      }
+      const exists = items.find((i) => i.name.toLowerCase() === item.name.toLowerCase());
+      if (!exists) items.push(item);
     });
 
     if (items.length < 10) {
-      console.error(`⚠️ Only scraped ${items.length} items — something may be wrong. Keeping old data.`);
+      console.error(`⚠️ Only scraped ${items.length} items — keeping old data.`);
       return { success: false, changes: null };
     }
 
@@ -167,34 +161,26 @@ async function scrapeValues() {
     try {
       if (fs.existsSync(DATA_FILE)) {
         const raw = fs.readFileSync(DATA_FILE, "utf8");
-        const data = JSON.parse(raw);
-        oldItems = data.items || [];
+        oldItems = JSON.parse(raw).items || [];
       }
-    } catch (e) {
-      // No old data, treat all as new
-    }
+    } catch (e) { /* No old data */ }
 
-    // Detect changes
     const changes = oldItems.length > 0 ? detectChanges(oldItems, items) : null;
 
     // Save new data
     const dir = path.dirname(DATA_FILE);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
-    const output = {
+    fs.writeFileSync(DATA_FILE, JSON.stringify({
       lastUpdated: new Date().toISOString(),
       source: SOURCE_URL,
       count: items.length,
-      items: items,
-    };
+      items,
+    }, null, 2), "utf8");
 
-    fs.writeFileSync(DATA_FILE, JSON.stringify(output, null, 2), "utf8");
     console.log(`✅ Synced ${items.length} items from game.guide (${new Date().toLocaleString()})`);
-
     if (changes) {
-      const totalChanges = changes.updated.length + changes.added.length + changes.removed.length;
+      const total = changes.updated.length + changes.added.length + changes.removed.length;
       console.log(`📊 Changes detected: ${changes.updated.length} updated, ${changes.added.length} added, ${changes.removed.length} removed`);
     }
 
@@ -205,7 +191,10 @@ async function scrapeValues() {
   }
 }
 
-// Load items from JSON file (falls back to hardcoded values.js)
+/**
+ * Load items from the saved JSON file. Falls back to hardcoded values.
+ * @returns {Array} Array of item objects
+ */
 function loadItems() {
   try {
     if (fs.existsSync(DATA_FILE)) {
@@ -217,16 +206,19 @@ function loadItems() {
   } catch (e) {
     console.error("⚠️ Failed to load JSON data, using fallback:", e.message);
   }
-
-  const fallback = require("./values");
+  const fallback = require("../../values");
   console.log(`📦 Using fallback data (${fallback.length} items)`);
   return fallback;
 }
 
-// Format changes into Discord message(s)
+/**
+ * Format detected changes into Discord message(s).
+ * Separates items into VALUE UP, VALUE DOWN, and OTHER CHANGES.
+ * @param {object} changes - Changes object from detectChanges
+ * @returns {string[]|null} Array of Discord messages, or null if no changes
+ */
 function formatChangesMessage(changes) {
   if (!changes) return null;
-
   const totalChanges = changes.updated.length + changes.added.length + changes.removed.length;
   if (totalChanges === 0) return null;
 
@@ -240,23 +232,16 @@ function formatChangesMessage(changes) {
     for (const item of changes.added.slice(0, 10)) {
       lines.push(`> • **${item.name}** — TrueVal: ${formatVal(item.trueVal)} | Trade Hub: ${formatVal(item.tradeHub)} | Proto: ${item.proto || "N/A"} | Demand: ${item.demand} | Trend: ${item.trend}`);
     }
-    if (changes.added.length > 10) {
-      lines.push(`> *...and ${changes.added.length - 10} more*`);
-    }
+    if (changes.added.length > 10) lines.push(`> *...and ${changes.added.length - 10} more*`);
     lines.push(``);
   }
 
-  // Separate updated items into UP and DOWN
+  // Separate updated items into UP / DOWN / OTHER
   if (changes.updated.length > 0) {
-    const goingUp = [];
-    const goingDown = [];
-    const other = []; // demand/trend changes without clear up/down
+    const goingUp = [], goingDown = [], other = [];
 
     for (const item of changes.updated) {
-      // Check if any value field went up or down
-      let hasUp = false;
-      let hasDown = false;
-
+      let hasUp = false, hasDown = false;
       for (const c of item.changes) {
         if (c.field === "TrueVal" || c.field === "Trade Hub" || c.field === "Proto") {
           const beforeNum = parseFloat(c.before.replace(/[S$, ]/g, "").replace("M", "000000").replace("K", "000").replace("N/A", "0")) || 0;
@@ -269,57 +254,36 @@ function formatChangesMessage(changes) {
           if (c.after === "Dropping") hasDown = true;
         }
         if (c.field === "Demand") {
-          const demandOrder = ["Very Low", "Low", "Medium", "High", "Limited"];
-          const beforeIdx = demandOrder.indexOf(c.before);
-          const afterIdx = demandOrder.indexOf(c.after);
-          if (afterIdx > beforeIdx) hasUp = true;
-          if (afterIdx < beforeIdx) hasDown = true;
+          const order = ["Very Low", "Low", "Medium", "High", "Limited"];
+          if (order.indexOf(c.after) > order.indexOf(c.before)) hasUp = true;
+          if (order.indexOf(c.after) < order.indexOf(c.before)) hasDown = true;
         }
       }
 
-      const changeStr = item.changes
-        .map((c) => `${c.field}: ${c.before} → **${c.after}**`)
-        .join(" | ");
+      const changeStr = item.changes.map((c) => `${c.field}: ${c.before} → **${c.after}**`).join(" | ");
       const entry = `> • **${item.name}** — ${changeStr}`;
 
       if (hasUp && !hasDown) goingUp.push(entry);
       else if (hasDown && !hasUp) goingDown.push(entry);
-      else other.push(entry); // mixed or non-value changes
+      else other.push(entry);
     }
 
-    // Show items going UP
     if (goingUp.length > 0) {
       lines.push(`📈 **VALUE UP** (${goingUp.length})`);
-      for (const entry of goingUp.slice(0, 10)) {
-        lines.push(entry);
-      }
-      if (goingUp.length > 10) {
-        lines.push(`> *...and ${goingUp.length - 10} more*`);
-      }
+      for (const e of goingUp.slice(0, 10)) lines.push(e);
+      if (goingUp.length > 10) lines.push(`> *...and ${goingUp.length - 10} more*`);
       lines.push(``);
     }
-
-    // Show items going DOWN
     if (goingDown.length > 0) {
       lines.push(`📉 **VALUE DOWN** (${goingDown.length})`);
-      for (const entry of goingDown.slice(0, 10)) {
-        lines.push(entry);
-      }
-      if (goingDown.length > 10) {
-        lines.push(`> *...and ${goingDown.length - 10} more*`);
-      }
+      for (const e of goingDown.slice(0, 10)) lines.push(e);
+      if (goingDown.length > 10) lines.push(`> *...and ${goingDown.length - 10} more*`);
       lines.push(``);
     }
-
-    // Show other changes (mixed or demand/trend only)
     if (other.length > 0) {
       lines.push(`🔄 **OTHER CHANGES** (${other.length})`);
-      for (const entry of other.slice(0, 10)) {
-        lines.push(entry);
-      }
-      if (other.length > 10) {
-        lines.push(`> *...and ${other.length - 10} more*`);
-      }
+      for (const e of other.slice(0, 10)) lines.push(e);
+      if (other.length > 10) lines.push(`> *...and ${other.length - 10} more*`);
       lines.push(``);
     }
   }
@@ -327,25 +291,18 @@ function formatChangesMessage(changes) {
   // Removed items
   if (changes.removed.length > 0) {
     lines.push(`❌ **REMOVED** (${changes.removed.length})`);
-    for (const item of changes.removed.slice(0, 5)) {
-      lines.push(`> • ${item.name}`);
-    }
-    if (changes.removed.length > 5) {
-      lines.push(`> *...and ${changes.removed.length - 5} more*`);
-    }
+    for (const item of changes.removed.slice(0, 5)) lines.push(`> • ${item.name}`);
+    if (changes.removed.length > 5) lines.push(`> *...and ${changes.removed.length - 5} more*`);
     lines.push(``);
   }
 
   lines.push(`━━━━━━━━━━━━━━━━━━━━━━━━`);
   lines.push(`*Source: game.guide/fisch-value-list*`);
 
-  // Split into chunks if too long for Discord (2000 char limit)
+  // Split into chunks for Discord 2000 char limit
   const fullMessage = lines.join("\n");
-  if (fullMessage.length <= 2000) {
-    return [fullMessage];
-  }
+  if (fullMessage.length <= 2000) return [fullMessage];
 
-  // Split into multiple messages
   const messages = [];
   let current = "";
   for (const line of lines) {

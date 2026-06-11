@@ -93,6 +93,16 @@ Show a quick guide inside Discord (only visible to you).
 
 ---
 
+### /about
+Show bot information, features, and creator details.
+
+**Usage:**
+```
+/about
+```
+
+---
+
 ## Quantity Format
 
 Quantity goes **before** the item name only:

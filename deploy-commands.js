@@ -56,6 +56,9 @@ const commands = [
   new SlashCommandBuilder()
     .setName("help")
     .setDescription("Show bot commands and usage guide"),
+  new SlashCommandBuilder()
+    .setName("about")
+    .setDescription("Show bot info and creator details"),
 ].map((cmd) => cmd.toJSON());
 
 const rest = new REST({ version: "10" }).setToken(process.env.DISCORD_TOKEN);

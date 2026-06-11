@@ -14,6 +14,7 @@ A Discord bot that analyzes trades for the Roblox game **Fisch** using live mark
 | `/history` | Price change history for an item |
 | `/sync` | Force refresh values from game.guide |
 | `/help` | Show usage guide in Discord |
+| `/about` | Show bot info and creator details |
 
 ---
 
