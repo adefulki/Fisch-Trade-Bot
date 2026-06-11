@@ -6,6 +6,7 @@ const { scrapeValues, loadItems } = require("../services/scraper");
 const { recordChanges } = require("../data/history");
 const { postChangeNotification } = require("../services/notifier");
 const { setItems } = require("../services/matcher");
+const { setItems: setAutocompleteItems } = require("../services/autocomplete");
 
 /**
  * Handle the /sync slash command interaction.
@@ -20,6 +21,7 @@ async function execute(interaction, context) {
   if (success) {
     const newItems = loadItems();
     setItems(newItems);
+    setAutocompleteItems(newItems);
     context.setItems(newItems);
     recordChanges(changes);
     await postChangeNotification(context.client, changes);

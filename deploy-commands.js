@@ -10,12 +10,14 @@ const commands = [
         .setName("your_offer")
         .setDescription("Your items (comma-separated, e.g. 2 Nocturne, Scarwing)")
         .setRequired(true)
+        .setAutocomplete(true)
     )
     .addStringOption((option) =>
       option
         .setName("their_offer")
         .setDescription("Their items (comma-separated, e.g. Evangeline)")
         .setRequired(true)
+        .setAutocomplete(true)
     ),
   new SlashCommandBuilder()
     .setName("value")
@@ -25,6 +27,7 @@ const commands = [
         .setName("item")
         .setDescription("Item name (e.g. Evangeline, c3, slime booth)")
         .setRequired(true)
+        .setAutocomplete(true)
     ),
   new SlashCommandBuilder()
     .setName("market")
@@ -37,12 +40,13 @@ const commands = [
     ),
   new SlashCommandBuilder()
     .setName("history")
-    .setDescription("Show price history for a specific item")
+    .setDescription("Show price chart + history for a specific item")
     .addStringOption((option) =>
       option
         .setName("item")
         .setDescription("Item name (e.g. Evangeline, c3)")
         .setRequired(true)
+        .setAutocomplete(true)
     )
     .addIntegerOption((option) =>
       option
@@ -67,6 +71,7 @@ const commands = [
         .setName("item")
         .setDescription("Item name (e.g. Evangeline, c3)")
         .setRequired(true)
+        .setAutocomplete(true)
     )
     .addIntegerOption((option) =>
       option

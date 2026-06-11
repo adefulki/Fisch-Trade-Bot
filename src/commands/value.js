@@ -1,15 +1,18 @@
 /**
  * /value command — Look up a single item's full stats and adjusted value.
- * Displayed as a compact rich embed.
+ * Includes a "View History" button that shows price history when clicked.
  */
 
-const { EmbedBuilder } = require("discord.js");
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType } = require("discord.js");
 const { findItem } = require("../services/matcher");
 const { getAdjustedValue } = require("../services/analyzer");
+const { getItemHistory, formatVal: histFormatVal } = require("../data/history");
 const { formatVal, trendEmoji } = require("../utils/format");
+const { buildPriceChartUrl } = require("../services/chart");
 
 /**
  * Handle the /value slash command interaction.
+ * Shows item stats with a button to view history.
  * @param {object} interaction - Discord interaction object
  */
 async function execute(interaction) {
@@ -43,7 +46,108 @@ async function execute(interaction) {
     )
     .setFooter({ text: "Source: game.guide/fisch-value-list" });
 
-  await interaction.reply({ embeds: [embed] });
+  // Add "View History" button
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`value_history_${item.name}`)
+      .setLabel("📜 View History")
+      .setStyle(ButtonStyle.Secondary),
+  );
+
+  const msg = await interaction.reply({ embeds: [embed], components: [row], fetchReply: true });
+
+  // Listen for button click (2 minutes)
+  const collector = msg.createMessageComponentCollector({
+    componentType: ComponentType.Button,
+    time: 120000,
+    filter: (i) => i.user.id === interaction.user.id,
+  });
+
+  collector.on("collect", async (btn) => {
+    if (!btn.customId.startsWith("value_history_")) return;
+
+    const entries = getItemHistory(item.name, 30);
+
+    if (entries.length === 0) {
+      await btn.reply({
+        content: `📜 **${item.name}** — No price changes recorded in the last 30 days.\n*History builds up as values change.*`,
+        ephemeral: true,
+      });
+      return;
+    }
+
+    // Build chart
+    const dataPoints = [];
+    for (const entry of entries) {
+      for (const change of entry.changes) {
+        if (change.field === "TrueVal" || change.field === "Trade Hub") {
+          const afterVal = parseVal(change.after);
+          if (afterVal > 0) {
+            const date = new Date(entry.timestamp).toLocaleDateString("en-GB", {
+              timeZone: "Asia/Jakarta", day: "numeric", month: "short",
+            });
+            dataPoints.push({ date, value: afterVal });
+          }
+        }
+      }
+    }
+
+    const currentVal = item.trueVal || item.tradeHub || 0;
+    if (currentVal > 0 && dataPoints.length > 0) {
+      dataPoints.push({ date: "Now", value: currentVal });
+    }
+
+    const chartUrl = dataPoints.length >= 2
+      ? buildPriceChartUrl(item.name, dataPoints, item.trueVal ? "TrueVal" : "Trade Hub")
+      : null;
+
+    // Format recent changes (newest first)
+    const recentChanges = [...entries].reverse().slice(0, 8).map((entry) => {
+      const date = new Date(entry.timestamp).toLocaleString("en-GB", {
+        timeZone: "Asia/Jakarta", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false,
+      });
+      const changeStr = entry.changes.map((c) => `${c.field}: ${c.before} → **${c.after}**`).join(" | ");
+      return `\`${date}\` ${changeStr}`;
+    });
+
+    const histEmbed = new EmbedBuilder()
+      .setTitle(`📜 ${item.name} — History (30d)`)
+      .setDescription(
+        `**${entries.length} changes recorded:**\n\n` +
+        recentChanges.join("\n") +
+        (entries.length > 8 ? `\n\n*...${entries.length - 8} older changes not shown. Use \`/history item: ${item.name}\` for full view.*` : "")
+      )
+      .setColor(color)
+      .setFooter({ text: "Source: game.guide" });
+
+    if (chartUrl) histEmbed.setImage(chartUrl);
+
+    await btn.reply({ embeds: [histEmbed], ephemeral: true });
+  });
+
+  collector.on("end", async () => {
+    const disabledRow = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`value_history_${item.name}`)
+        .setLabel("📜 View History")
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(true),
+    );
+    await msg.edit({ components: [disabledRow] }).catch(() => {});
+  });
+}
+
+/**
+ * Parse formatted value string back to number.
+ * @param {string} str - Formatted string
+ * @returns {number} Numeric value
+ */
+function parseVal(str) {
+  if (!str || str === "N/A") return 0;
+  str = str.replace(/\*\*/g, "").replace("S$", "").replace(/,/g, "").trim();
+  if (str.includes("M")) return parseFloat(str) * 1000000;
+  if (str.includes("K")) return parseFloat(str) * 1000;
+  return parseFloat(str) || 0;
 }
 
 module.exports = { execute };

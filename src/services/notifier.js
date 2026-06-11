@@ -1,17 +1,156 @@
 /**
  * Discord channel notification service.
- * Posts value change notifications to all subscribed channels + the env-configured channel.
+ * Posts value change notifications as embeds to all subscribed channels.
  */
 
-const { formatChangesMessage } = require("./scraper");
+const { EmbedBuilder } = require("discord.js");
 const { getSubscribedChannels } = require("../data/subscriptions");
+const { formatVal } = require("../utils/format");
 
 /**
- * Post value change notifications to all subscribed channels.
+ * Build embed(s) from detected changes.
+ * Separates into VALUE UP, VALUE DOWN, and OTHER sections.
+ * @param {object} changes - Changes object from scraper
+ * @returns {EmbedBuilder[]|null} Array of embeds, or null if no changes
+ */
+function buildChangeEmbeds(changes) {
+  if (!changes) return null;
+  const totalChanges = changes.updated.length + changes.added.length + changes.removed.length;
+  if (totalChanges === 0) return null;
+
+  const timestamp = new Date().toLocaleString("en-GB", {
+    timeZone: "Asia/Jakarta",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+
+  const embeds = [];
+
+  // Separate updated items into UP / DOWN / OTHER
+  let goingUp = [], goingDown = [], other = [];
+
+  if (changes.updated.length > 0) {
+    for (const item of changes.updated) {
+      let hasUp = false, hasDown = false;
+      for (const c of item.changes) {
+        if (c.field === "TrueVal" || c.field === "Trade Hub" || c.field === "Proto") {
+          const beforeNum = parseFloat(c.before.replace(/[S$, ]/g, "").replace("M", "000000").replace("K", "000").replace("N/A", "0")) || 0;
+          const afterNum = parseFloat(c.after.replace(/[S$, ]/g, "").replace("M", "000000").replace("K", "000").replace("N/A", "0")) || 0;
+          if (afterNum > beforeNum) hasUp = true;
+          if (afterNum < beforeNum) hasDown = true;
+        }
+        if (c.field === "Trend") {
+          if (c.after === "Rising") hasUp = true;
+          if (c.after === "Dropping") hasDown = true;
+        }
+        if (c.field === "Demand") {
+          const order = ["Very Low", "Low", "Medium", "High", "Limited"];
+          if (order.indexOf(c.after) > order.indexOf(c.before)) hasUp = true;
+          if (order.indexOf(c.after) < order.indexOf(c.before)) hasDown = true;
+        }
+      }
+
+      const changeStr = item.changes.map((c) => `${c.field}: ${c.before} → **${c.after}**`).join(" | ");
+      const entry = `• **${item.name}** — ${changeStr}`;
+
+      if (hasUp && !hasDown) goingUp.push(entry);
+      else if (hasDown && !hasUp) goingDown.push(entry);
+      else other.push(entry);
+    }
+  }
+
+  // Main embed
+  const mainEmbed = new EmbedBuilder()
+    .setTitle("📢 FISCH VALUE UPDATE")
+    .setColor(0x1e90ff)
+    .setFooter({ text: `Source: game.guide/fisch-value-list • ${timestamp} WIB` })
+    .setTimestamp();
+
+  const descLines = [];
+
+  // New items section
+  if (changes.added.length > 0) {
+    descLines.push(`🆕 **NEW ITEMS** (${changes.added.length})`);
+    for (const item of changes.added.slice(0, 5)) {
+      descLines.push(`• **${item.name}** — TrueVal: ${formatVal(item.trueVal)} | Demand: ${item.demand} | Trend: ${item.trend}`);
+    }
+    if (changes.added.length > 5) descLines.push(`*...and ${changes.added.length - 5} more*`);
+    descLines.push(``);
+  }
+
+  // Value UP section
+  if (goingUp.length > 0) {
+    descLines.push(`📈 **VALUE UP** (${goingUp.length})`);
+    for (const e of goingUp.slice(0, 10)) descLines.push(e);
+    if (goingUp.length > 10) descLines.push(`*...and ${goingUp.length - 10} more*`);
+    descLines.push(``);
+  }
+
+  // Value DOWN section
+  if (goingDown.length > 0) {
+    descLines.push(`📉 **VALUE DOWN** (${goingDown.length})`);
+    for (const e of goingDown.slice(0, 10)) descLines.push(e);
+    if (goingDown.length > 10) descLines.push(`*...and ${goingDown.length - 10} more*`);
+    descLines.push(``);
+  }
+
+  // Other changes
+  if (other.length > 0) {
+    descLines.push(`🔄 **OTHER CHANGES** (${other.length})`);
+    for (const e of other.slice(0, 5)) descLines.push(e);
+    if (other.length > 5) descLines.push(`*...and ${other.length - 5} more*`);
+    descLines.push(``);
+  }
+
+  // Removed items
+  if (changes.removed.length > 0) {
+    descLines.push(`❌ **REMOVED** (${changes.removed.length})`);
+    for (const item of changes.removed.slice(0, 3)) descLines.push(`• ${item.name}`);
+    if (changes.removed.length > 3) descLines.push(`*...and ${changes.removed.length - 3} more*`);
+  }
+
+  const description = descLines.join("\n");
+
+  // If description fits in one embed (4096 char limit)
+  if (description.length <= 4000) {
+    mainEmbed.setDescription(description);
+    embeds.push(mainEmbed);
+  } else {
+    // Split into multiple embeds
+    const chunks = [];
+    let current = "";
+    for (const line of descLines) {
+      if ((current + "\n" + line).length > 3900) {
+        chunks.push(current);
+        current = line;
+      } else {
+        current += (current ? "\n" : "") + line;
+      }
+    }
+    if (current) chunks.push(current);
+
+    for (let i = 0; i < chunks.length; i++) {
+      const embed = new EmbedBuilder()
+        .setDescription(chunks[i])
+        .setColor(0x1e90ff);
+      if (i === 0) embed.setTitle("📢 FISCH VALUE UPDATE");
+      if (i === chunks.length - 1) embed.setFooter({ text: `Source: game.guide/fisch-value-list • ${timestamp} WIB` });
+      embeds.push(embed);
+    }
+  }
+
+  return embeds;
+}
+
+/**
+ * Post value change notifications as embeds to all subscribed channels.
  * Includes the NOTIFICATION_CHANNEL_ID from env + all /subscribe channels.
- * Skips silently if no changes or no channels configured.
  * @param {object} client - Discord.js client instance
- * @param {object|null} changes - Changes object from scraper (updated, added, removed)
+ * @param {object|null} changes - Changes object from scraper
  */
 async function postChangeNotification(client, changes) {
   if (!changes) {
@@ -25,22 +164,20 @@ async function postChangeNotification(client, changes) {
     return;
   }
 
-  const messages = formatChangesMessage(changes);
-  if (!messages || messages.length === 0) {
-    console.log("📢 No formatted messages to send");
+  const embeds = buildChangeEmbeds(changes);
+  if (!embeds || embeds.length === 0) {
+    console.log("📢 No embeds to send");
     return;
   }
 
   // Collect all channel IDs to notify
   const channelIds = new Set();
 
-  // Add env-configured channel (legacy/owner channel)
   const envChannel = process.env.NOTIFICATION_CHANNEL_ID;
   if (envChannel && envChannel !== "paste_your_channel_id_here") {
     channelIds.add(envChannel);
   }
 
-  // Add all subscribed channels
   const subscribedChannels = getSubscribedChannels();
   for (const id of subscribedChannels) {
     channelIds.add(id);
@@ -51,7 +188,7 @@ async function postChangeNotification(client, changes) {
     return;
   }
 
-  console.log(`📢 Posting notifications to ${channelIds.size} channel(s)...`);
+  console.log(`📢 Posting embed notifications to ${channelIds.size} channel(s)...`);
 
   let successCount = 0;
   let failCount = 0;
@@ -63,9 +200,7 @@ async function postChangeNotification(client, changes) {
         failCount++;
         continue;
       }
-      for (const msg of messages) {
-        await channel.send(msg);
-      }
+      await channel.send({ embeds });
       successCount++;
     } catch (error) {
       failCount++;

@@ -21,7 +21,7 @@ Analyze a trade to see if it's a win or loss.
 ---
 
 ### /value
-Look up a single item's full stats and adjusted value.
+Look up a single item's full stats and adjusted value. Includes a **"View History"** button to see recent price changes and chart.
 
 **Examples:**
 ```
@@ -55,7 +55,7 @@ Show market analytics: top valued items, rising/dropping trends, biggest gainers
 ---
 
 ### /history
-Show price change history for a specific item over time.
+Show price chart + change history for a specific item. Combines a visual line chart with a paginated list of all recorded changes.
 
 **Usage:**
 ```
@@ -65,11 +65,13 @@ Show price change history for a specific item over time.
 ```
 
 **Shows:**
+- Line chart of price over time (embedded image)
 - Current values (TrueVal, Trade Hub, Proto, Demand, Trend)
-- Timeline of all recorded price changes with timestamps
-- Each change shows before → after for each field
+- High / Low / Total Change stats
+- Timeline of all recorded price changes
+- Paginated with ◀ ▶ buttons if many entries
 
-*Note: History accumulates over time. The bot records changes every hour, so more data = better insights.*
+*Note: History accumulates over time. The bot records changes every hour.*
 
 ---
 

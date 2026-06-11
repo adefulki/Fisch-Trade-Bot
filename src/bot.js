@@ -8,6 +8,7 @@ const cron = require("node-cron");
 
 const { scrapeValues, loadItems } = require("./services/scraper");
 const { setItems } = require("./services/matcher");
+const { setItems: setAutocompleteItems, getAutocompleteSuggestions } = require("./services/autocomplete");
 const { recordChanges } = require("./data/history");
 const { postChangeNotification } = require("./services/notifier");
 
@@ -33,6 +34,7 @@ const client = new Client({
 /** Live item data (reloaded after each sync) */
 let items = loadItems();
 setItems(items);
+setAutocompleteItems(items);
 
 /** Timestamp of last sync (prevents double-sync within 5 minutes) */
 let lastSyncTime = 0;
@@ -53,6 +55,7 @@ async function syncAndNotify() {
   if (success) {
     items = loadItems();
     setItems(items);
+    setAutocompleteItems(items);
     recordChanges(changes);
     await postChangeNotification(client, changes);
   }
@@ -84,11 +87,21 @@ client.on("ready", async () => {
   if (success) {
     items = loadItems();
     setItems(items);
+    setAutocompleteItems(items);
   }
 });
 
 // --- Command router ---
 client.on("interactionCreate", async (interaction) => {
+  // Handle autocomplete interactions
+  if (interaction.isAutocomplete()) {
+    const focusedOption = interaction.options.getFocused(true);
+    const isTradeField = interaction.commandName === "trade";
+    const suggestions = getAutocompleteSuggestions(focusedOption.value, isTradeField);
+    await interaction.respond(suggestions).catch(() => {});
+    return;
+  }
+
   if (!interaction.isChatInputCommand()) return;
 
   const context = {

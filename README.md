@@ -21,8 +21,8 @@ That's it — all commands work immediately after inviting.
 | `/trade` | Analyze a trade between two players |
 | `/value` | Look up a single item's value |
 | `/market` | Market analytics: top items, trends, flips |
-| `/history` | Price change history for an item |
-| `/chart` | Visual price chart over time |
+| `/history` | Price chart + change history for an item |
+| `/chart` | Quick price chart (standalone) |
 | `/subscribe` | Get value change alerts in a channel |
 | `/unsubscribe` | Stop value change alerts |
 | `/help` | Show quick usage guide |
@@ -148,7 +148,7 @@ High demand items sell fast and trade above listed price. Low demand items are h
 
 - Values update every hour automatically from game.guide
 - Use `/market` to find flip opportunities before trading
-- Use `/history` or `/chart` to check trends before accepting
+- Use `/history` to check trends and price charts before accepting
 - Bot suggests specific items to add when a trade is unfair
 - If you see `⚡ Analyzed locally` — AI is on cooldown, results still accurate
 
