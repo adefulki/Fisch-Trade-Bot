@@ -167,6 +167,8 @@ Separate multiple items with commas:
 
 ## Flexible Item Names
 
+All item fields have **autocomplete** — start typing and the bot suggests matching items in a dropdown. You can also type freely using shortcuts and abbreviations:
+
 ### Quick Aliases
 
 | Type this | Gets this |

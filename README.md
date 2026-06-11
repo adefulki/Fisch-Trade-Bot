@@ -57,7 +57,7 @@ Separate multiple items with commas: `3 c3, 2 Nocturne, Scarwing`
 
 ## Flexible Item Names
 
-You don't need exact names. The bot understands:
+You don't need exact names. The bot has **autocomplete** — start typing and it suggests matching items. You can also type freely using shortcuts:
 
 | You type | Gets |
 |----------|------|
@@ -112,7 +112,7 @@ Use `/market` to see:
 - ⚡ Most volatile items
 - 💰 Best flip opportunities
 
-Navigate pages with ⏮ ◀ ▶ ⏭ buttons.
+All sections displayed at once as multiple embeds.
 
 ---
 
@@ -220,7 +220,7 @@ npm start         # Start the bot
     ├── commands/
     │   ├── trade.js          # /trade
     │   ├── value.js          # /value
-    │   ├── market.js         # /market (paginated)
+    │   ├── market.js         # /market (multi-embed)
     │   ├── history.js        # /history
     │   ├── chart.js          # /chart (QuickChart image)
     │   ├── subscribe.js      # /subscribe + /unsubscribe
