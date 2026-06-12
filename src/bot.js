@@ -27,6 +27,7 @@ const forecastCmd = require("./commands/forecast");
 const watchCmd = require("./commands/watch");
 const portfolioCmd = require("./commands/portfolio");
 const healthCmd = require("./commands/health");
+const compareCmd = require("./commands/compare");
 
 /** Discord client with required intents */
 const client = new Client({
@@ -195,6 +196,9 @@ client.on("interactionCreate", async (interaction) => {
         break;
       case "health":
         await healthCmd.execute(interaction, items);
+        break;
+      case "compare":
+        await compareCmd.execute(interaction);
         break;
       default:
         break;

@@ -1,80 +1,65 @@
 /**
- * /help command — Show bot usage guide organized by category (ephemeral).
+ * /help command — Show bot usage guide organized by category as embed (ephemeral).
  */
+
+const { EmbedBuilder } = require("discord.js");
 
 /**
  * Handle the /help slash command interaction.
  * @param {object} interaction - Discord interaction object
  */
 async function execute(interaction) {
-  const helpText = [
-    `🐟 **FISCH TRADE ASSISTANT — USER GUIDE**`,
-    ``,
-    `━━━━━━━━━━━━━━━━━━━━━━━━`,
-    `⚖️ **TRADING**`,
-    `━━━━━━━━━━━━━━━━━━━━━━━━`,
-    `**\`/trade\`** — Analyze a trade`,
-    `> \`/trade your_offer: 2 Nocturne, Scarwing their_offer: Evangeline\``,
-    `**\`/value\`** — Look up an item's value`,
-    `> \`/value item: Evangeline\``,
-    ``,
-    `━━━━━━━━━━━━━━━━━━━━━━━━`,
-    `📊 **MARKET & ANALYTICS**`,
-    `━━━━━━━━━━━━━━━━━━━━━━━━`,
-    `**\`/market\`** — Top items, flips, trends`,
-    `> \`/market\` or \`/market days: 30\``,
-    `**\`/health\`** — Market health index (bullish/bearish)`,
-    `**\`/forecast\`** — Price prediction for an item`,
-    `> \`/forecast item: Evangeline\``,
-    ``,
-    `━━━━━━━━━━━━━━━━━━━━━━━━`,
-    `📈 **HISTORY & CHARTS**`,
-    `━━━━━━━━━━━━━━━━━━━━━━━━`,
-    `**\`/history\`** — Price chart + change log`,
-    `> \`/history item: Evangeline\` or \`/history item: c3 days: 14\``,
-    `**\`/chart\`** — TrueVal + Trade Hub & Proto charts`,
-    `> \`/chart item: Evangeline\``,
-    ``,
-    `━━━━━━━━━━━━━━━━━━━━━━━━`,
-    `💼 **PORTFOLIO & ALERTS**`,
-    `━━━━━━━━━━━━━━━━━━━━━━━━`,
-    `**\`/portfolio view\`** — See your holdings + ROI`,
-    `**\`/portfolio add\`** — Track an item you own`,
-    `> \`/portfolio add item: Nocturne qty: 2\``,
-    `**\`/portfolio remove\`** — Remove from portfolio`,
-    `**\`/watch add\`** — Set a price alert (DM)`,
-    `> \`/watch add item: Evangeline condition: above price: 5000000\``,
-    `**\`/watch list\`** — View your alerts`,
-    `**\`/watch remove\`** — Cancel an alert`,
-    ``,
-    `━━━━━━━━━━━━━━━━━━━━━━━━`,
-    `🔔 **NOTIFICATIONS**`,
-    `━━━━━━━━━━━━━━━━━━━━━━━━`,
-    `**\`/subscribe\`** — Get value alerts in a channel`,
-    `**\`/unsubscribe\`** — Stop alerts for this server`,
-    ``,
-    `━━━━━━━━━━━━━━━━━━━━━━━━`,
-    `ℹ️ **OTHER**`,
-    `━━━━━━━━━━━━━━━━━━━━━━━━`,
-    `**\`/sync\`** — Force refresh values`,
-    `**\`/help\`** — This guide`,
-    `**\`/about\`** — Bot info & creator`,
-    ``,
-    `━━━━━━━━━━━━━━━━━━━━━━━━`,
-    `🔢 **QUANTITY** (left side only)`,
-    `━━━━━━━━━━━━━━━━━━━━━━━━`,
-    `> \`3 Nocturne\` | \`3x Nocturne\` | \`4 curse 4\` | \`3 c3\``,
-    ``,
-    `━━━━━━━━━━━━━━━━━━━━━━━━`,
-    `🔍 **FLEXIBLE NAMES** (autocomplete enabled)`,
-    `━━━━━━━━━━━━━━━━━━━━━━━━`,
-    `> \`c3\` → Curse III | \`c4\` → Curse IV | \`stb\` → Slime Trade Booth`,
-    `> \`evan\` → Evangeline | \`crev\` → Cthulu's Revenge`,
-    `> \`slime booth\` → Slime Trade Booth | \`rb sera\` → Seraphic Rainbow`,
-    `> \`pearsickle\` → Pearsicle (typos ok!)`,
-  ].join("\n");
+  const embed = new EmbedBuilder()
+    .setTitle("🐟 FISCH TRADE ASSISTANT")
+    .setColor(0x1e90ff)
+    .setDescription([
+      `**⚖️ TRADING**`,
+      `\`/trade\` — Analyze a trade`,
+      `\`/value\` — Look up an item's value + history button`,
+      ``,
+      `**📊 MARKET & ANALYTICS**`,
+      `\`/market\` — Top items, flips, trends`,
+      `\`/health\` — Market health (bullish/bearish)`,
+      `\`/forecast\` — Price prediction`,
+      `\`/compare\` — Compare 2-5 items side by side`,
+      ``,
+      `**📈 HISTORY & CHARTS**`,
+      `\`/history\` — Price chart + change log`,
+      `\`/chart\` — TrueVal, Trade Hub & Proto charts`,
+      ``,
+      `**💼 PORTFOLIO & ALERTS**`,
+      `\`/portfolio view\` — Holdings + ROI`,
+      `\`/portfolio add\` — Track an item`,
+      `\`/watch add\` — Price alert (DM when target hit)`,
+      `\`/watch list\` — View your alerts`,
+      ``,
+      `**🔔 NOTIFICATIONS**`,
+      `\`/subscribe\` — Value alerts in a channel`,
+      `\`/unsubscribe\` — Stop alerts`,
+      ``,
+      `**ℹ️ OTHER**`,
+      `\`/sync\` · \`/help\` · \`/about\``,
+    ].join("\n"))
+    .addFields(
+      {
+        name: "🔢 Quantity (left side only)",
+        value: "`3 Nocturne` · `3x Scarwing` · `4 curse 4` · `3 c3`",
+        inline: false,
+      },
+      {
+        name: "🔍 Flexible Names (autocomplete enabled)",
+        value: "`c3` → Curse III · `evan` → Evangeline · `crev` → Cthulu's Revenge\n`slime booth` → Slime Trade Booth · `rb sera` → Seraphic Rainbow\nTypos ok! `pearsickle` → Pearsicle",
+        inline: false,
+      },
+      {
+        name: "📊 Verdict Scale",
+        value: "🟢🟢 BIG WIN · 🟢 WIN · 🟡 FAIR · 🔴 LOSS · 🔴🔴 BIG LOSS",
+        inline: false,
+      },
+    )
+    .setFooter({ text: "Values auto-update hourly • Use /about for bot info" });
 
-  await interaction.reply({ content: helpText, ephemeral: true });
+  await interaction.reply({ embeds: [embed], ephemeral: true });
 }
 
 module.exports = { execute };

@@ -29,6 +29,7 @@ That's it — all commands work immediately after inviting.
 | `/watch` | Price alerts (add/remove/list) |
 | `/portfolio` | Track your holdings with ROI |
 | `/health` | Market health index (bullish/bearish) |
+| `/compare` | Compare 2-5 items side by side |
 | `/help` | Show quick usage guide |
 | `/about` | Bot info and creator details |
 

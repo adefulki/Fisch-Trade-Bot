@@ -142,6 +142,12 @@ const commands = [
     .addIntegerOption((option) =>
       option.setName("days").setDescription("Days to analyze (default: 7)").setRequired(false)
     ),
+  new SlashCommandBuilder()
+    .setName("compare")
+    .setDescription("Compare 2-5 items side by side with investment suggestion")
+    .addStringOption((option) =>
+      option.setName("items").setDescription("Items to compare (comma-separated, e.g. Evangeline, Nocturne, Curse IV)").setRequired(true)
+    ),
 ].map((cmd) => cmd.toJSON());
 
 const rest = new REST({ version: "10" }).setToken(process.env.DISCORD_TOKEN);

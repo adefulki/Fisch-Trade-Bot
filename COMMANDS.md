@@ -228,6 +228,23 @@ Show the overall market health index — is the market bullish or bearish?
 
 ---
 
+### /compare
+Compare 2-5 items side by side with investment scores and suggestions.
+
+**Usage:**
+```
+/compare items: Evangeline, Nocturne, Curse IV
+/compare items: c3, c4, Scarwing
+```
+
+**Shows:**
+- Each item ranked by investment score (0-100, grade S to F)
+- Values, demand, trend, and forecast for each
+- 💡 Investment suggestion (best pick, avoid, swap recommendations)
+- Score based on: demand + trend + forecast direction
+
+---
+
 ## Quantity Format
 
 Quantity goes **before** the item name only:
