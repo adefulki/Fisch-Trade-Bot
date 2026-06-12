@@ -11,6 +11,7 @@ const { setItems } = require("./services/matcher");
 const { setItems: setAutocompleteItems, getAutocompleteSuggestions } = require("./services/autocomplete");
 const { recordChanges } = require("./data/history");
 const { postChangeNotification } = require("./services/notifier");
+const { checkWatches } = require("./data/watchlist");
 
 // Command handlers
 const tradeCmd = require("./commands/trade");
@@ -22,6 +23,10 @@ const helpCmd = require("./commands/help");
 const aboutCmd = require("./commands/about");
 const chartCmd = require("./commands/chart");
 const subscribeCmd = require("./commands/subscribe");
+const forecastCmd = require("./commands/forecast");
+const watchCmd = require("./commands/watch");
+const portfolioCmd = require("./commands/portfolio");
+const healthCmd = require("./commands/health");
 
 /** Discord client with required intents */
 const client = new Client({
@@ -38,6 +43,35 @@ setAutocompleteItems(items);
 
 /** Timestamp of last sync (prevents double-sync within 5 minutes) */
 let lastSyncTime = 0;
+
+/**
+ * Send DM alerts for triggered watchlist items.
+ */
+async function processWatchAlerts() {
+  const triggered = checkWatches(items);
+  const { formatVal } = require("./utils/format");
+
+  for (const alert of triggered) {
+    try {
+      const user = await client.users.fetch(alert.userId);
+      if (user) {
+        const symbol = alert.condition === "above" ? "≥" : "≤";
+        await user.send(
+          `🔔 **Watch Alert!**\n\n` +
+          `**${alert.itemName}** is now ${symbol} your target!\n` +
+          `Target: ${formatVal(alert.targetValue)}\n` +
+          `Current: ${formatVal(alert.currentValue)}\n\n` +
+          `*This watch has been automatically removed.*`
+        );
+      }
+    } catch (e) {
+      console.error(`⚠️ Failed to DM user ${alert.userId}:`, e.message);
+    }
+  }
+  if (triggered.length > 0) {
+    console.log(`🔔 Sent ${triggered.length} watch alert(s)`);
+  }
+}
 
 /**
  * Sync values from game.guide and post notifications.
@@ -58,6 +92,8 @@ async function syncAndNotify() {
     setAutocompleteItems(items);
     recordChanges(changes);
     await postChangeNotification(client, changes);
+    // Check watchlist alerts
+    await processWatchAlerts();
   }
 }
 
@@ -140,6 +176,25 @@ client.on("interactionCreate", async (interaction) => {
         break;
       case "unsubscribe":
         await subscribeCmd.executeUnsubscribe(interaction);
+        break;
+      case "forecast":
+        await forecastCmd.execute(interaction);
+        break;
+      case "watch":
+        const watchSub = interaction.options.getSubcommand();
+        if (watchSub === "add") await watchCmd.executeAdd(interaction);
+        else if (watchSub === "remove") await watchCmd.executeRemove(interaction);
+        else if (watchSub === "list") await watchCmd.executeList(interaction);
+        break;
+      case "portfolio":
+        const pfSub = interaction.options.getSubcommand();
+        if (pfSub === "view") await portfolioCmd.executeView(interaction, items);
+        else if (pfSub === "add") await portfolioCmd.executeAdd(interaction, items);
+        else if (pfSub === "remove") await portfolioCmd.executeRemove(interaction);
+        else if (pfSub === "clear") await portfolioCmd.executeClear(interaction);
+        break;
+      case "health":
+        await healthCmd.execute(interaction, items);
         break;
       default:
         break;

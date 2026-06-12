@@ -25,6 +25,10 @@ That's it — all commands work immediately after inviting.
 | `/chart` | Quick price chart (standalone) |
 | `/subscribe` | Get value change alerts in a channel |
 | `/unsubscribe` | Stop value change alerts |
+| `/forecast` | Price trend prediction for an item |
+| `/watch` | Price alerts (add/remove/list) |
+| `/portfolio` | Track your holdings with ROI |
+| `/health` | Market health index (bullish/bearish) |
 | `/help` | Show quick usage guide |
 | `/about` | Bot info and creator details |
 
@@ -154,6 +158,10 @@ High demand items sell fast and trade above listed price. Low demand items are h
 - Values update every hour automatically from game.guide
 - Use `/market` to find flip opportunities before trading
 - Use `/history` to check trends and price charts before accepting
+- Use `/forecast` to see where prices are heading
+- Use `/watch` to get DM'd when an item hits your target price
+- Use `/portfolio` to track your investments and see ROI
+- Use `/health` to check if the market is bullish or bearish
 - Bot suggests specific items to add when a trade is unfair
 - If you see `⚡ Analyzed locally` — AI is on cooldown, results still accurate
 
@@ -219,7 +227,9 @@ npm start         # Start the bot
 ├── data/
 │   ├── values.json           # Current scraped data
 │   ├── history.json          # Price change history (90 days)
-│   └── subscriptions.json    # Server notification subscriptions
+│   ├── subscriptions.json    # Server notification subscriptions
+│   ├── watchlist.json        # User price alerts
+│   └── portfolios.json       # User portfolio holdings
 └── src/
     ├── bot.js                # Discord client, cron, command router
     ├── commands/
@@ -228,6 +238,10 @@ npm start         # Start the bot
     │   ├── market.js         # /market (multi-embed)
     │   ├── history.js        # /history
     │   ├── chart.js          # /chart (QuickChart image)
+    │   ├── forecast.js       # /forecast (trend prediction)
+    │   ├── watch.js          # /watch (price alerts)
+    │   ├── portfolio.js      # /portfolio (holdings + ROI)
+    │   ├── health.js         # /health (market index)
     │   ├── subscribe.js      # /subscribe + /unsubscribe
     │   ├── sync.js           # /sync
     │   ├── help.js           # /help
@@ -236,11 +250,16 @@ npm start         # Start the bot
     │   ├── ai.js             # Gemini AI integration + fallback
     │   ├── analyzer.js       # Local trade valuation formulas
     │   ├── matcher.js        # Fuzzy item name matching
-    │   ├── notifier.js       # Multi-channel notifications
+    │   ├── autocomplete.js   # Discord autocomplete suggestions
+    │   ├── notifier.js       # Multi-channel embed notifications
     │   ├── scraper.js        # game.guide scraper + diff detection
-    │   └── chart.js          # QuickChart.io URL generation
+    │   ├── chart.js          # QuickChart.io URL generation
+    │   ├── forecast.js       # Linear regression price prediction
+    │   └── market-health.js  # Market sentiment calculation
     ├── data/
     │   ├── history.js        # Historical data storage + analytics
+    │   ├── watchlist.js      # Price alert management
+    │   ├── portfolio.js      # User portfolio storage
     │   └── subscriptions.js  # Notification subscription manager
     └── utils/
         ├── constants.js      # Multipliers, aliases, roman numerals

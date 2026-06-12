@@ -91,6 +91,57 @@ const commands = [
   new SlashCommandBuilder()
     .setName("unsubscribe")
     .setDescription("Stop receiving value change notifications in this server"),
+  new SlashCommandBuilder()
+    .setName("forecast")
+    .setDescription("Price trend forecast for an item")
+    .addStringOption((option) =>
+      option.setName("item").setDescription("Item name").setRequired(true).setAutocomplete(true)
+    )
+    .addIntegerOption((option) =>
+      option.setName("days").setDescription("Days of history to analyze (default: 14)").setRequired(false)
+    ),
+  new SlashCommandBuilder()
+    .setName("watch")
+    .setDescription("Manage price alerts (watchlist)")
+    .addSubcommand((sub) =>
+      sub.setName("add").setDescription("Add a price alert")
+        .addStringOption((o) => o.setName("item").setDescription("Item name").setRequired(true).setAutocomplete(true))
+        .addStringOption((o) => o.setName("condition").setDescription("Alert when price goes...").setRequired(true).addChoices({ name: "Above", value: "above" }, { name: "Below", value: "below" }))
+        .addNumberOption((o) => o.setName("price").setDescription("Target price (e.g. 5000000)").setRequired(true))
+    )
+    .addSubcommand((sub) =>
+      sub.setName("remove").setDescription("Remove a price alert")
+        .addStringOption((o) => o.setName("item").setDescription("Item name").setRequired(true).setAutocomplete(true))
+        .addStringOption((o) => o.setName("condition").setDescription("Which alert to remove").setRequired(false).addChoices({ name: "Above", value: "above" }, { name: "Below", value: "below" }, { name: "All", value: "all" }))
+    )
+    .addSubcommand((sub) =>
+      sub.setName("list").setDescription("Show your active watches")
+    ),
+  new SlashCommandBuilder()
+    .setName("portfolio")
+    .setDescription("Track your item holdings with ROI")
+    .addSubcommand((sub) =>
+      sub.setName("view").setDescription("View your portfolio")
+    )
+    .addSubcommand((sub) =>
+      sub.setName("add").setDescription("Add item to portfolio")
+        .addStringOption((o) => o.setName("item").setDescription("Item name").setRequired(true).setAutocomplete(true))
+        .addIntegerOption((o) => o.setName("qty").setDescription("Quantity (default: 1)").setRequired(false))
+    )
+    .addSubcommand((sub) =>
+      sub.setName("remove").setDescription("Remove item from portfolio")
+        .addStringOption((o) => o.setName("item").setDescription("Item name").setRequired(true).setAutocomplete(true))
+        .addIntegerOption((o) => o.setName("qty").setDescription("Quantity to remove (default: all)").setRequired(false))
+    )
+    .addSubcommand((sub) =>
+      sub.setName("clear").setDescription("Clear your entire portfolio")
+    ),
+  new SlashCommandBuilder()
+    .setName("health")
+    .setDescription("Show overall market health index")
+    .addIntegerOption((option) =>
+      option.setName("days").setDescription("Days to analyze (default: 7)").setRequired(false)
+    ),
 ].map((cmd) => cmd.toJSON());
 
 const rest = new REST({ version: "10" }).setToken(process.env.DISCORD_TOKEN);

@@ -152,6 +152,82 @@ Stop receiving value change notifications in this server. Requires **Manage Chan
 
 ---
 
+### /forecast
+Price trend prediction for an item based on recent price history. Uses linear regression to project future values.
+
+**Usage:**
+```
+/forecast item: Evangeline
+/forecast item: c3 days: 14
+```
+
+**Shows:**
+- Current value and trend direction (Rising/Falling/Stable)
+- Daily change rate (value + percentage)
+- 7-day price prediction
+- Confidence level (Low/Medium/High) based on data consistency
+
+*Requires at least 3 recorded price changes for the item.*
+
+---
+
+### /watch
+Manage price alerts. Get a DM when an item hits your target price.
+
+**Usage:**
+```
+/watch add item: Evangeline condition: above price: 5000000
+/watch add item: Curse III condition: below price: 400000
+/watch remove item: Evangeline
+/watch list
+```
+
+- Max 10 watches per user
+- Alerts are sent via DM
+- Watches auto-remove after triggering
+- Conditions: `above` (≥ target) or `below` (≤ target)
+
+---
+
+### /portfolio
+Track your item holdings and see total value with ROI (Return on Investment).
+
+**Usage:**
+```
+/portfolio add item: Nocturne qty: 2       → add items (records current price as buy price)
+/portfolio view                            → see all holdings + ROI
+/portfolio remove item: Nocturne           → remove item
+/portfolio remove item: Nocturne qty: 1    → remove specific quantity
+/portfolio clear                           → clear everything
+```
+
+**Shows:**
+- Each item with quantity, current value, and ROI %
+- Total portfolio value vs total invested
+- Total ROI (profit/loss)
+
+Max 25 items per user. Buy price is averaged when adding more of the same item.
+
+---
+
+### /health
+Show the overall market health index — is the market bullish or bearish?
+
+**Usage:**
+```
+/health
+/health days: 14
+```
+
+**Shows:**
+- Sentiment score (-100 to +100)
+- Visual sentiment bar
+- Market status: Bullish / Slightly Bullish / Neutral / Slightly Bearish / Bearish
+- Breakdown: rising vs dropping, gainers vs losers, demand distribution
+- Activity level: Quiet → Moderate → Active → Very Active
+
+---
+
 ## Quantity Format
 
 Quantity goes **before** the item name only:
@@ -316,4 +392,8 @@ The bot posts automatic notifications to a designated channel when values change
 - Items with 📉 Dropping trend are worth less — trade them away soon
 - Use `/market` to find flip opportunities before trading
 - Use `/history` to check if an item's value is going up or down before accepting a trade
+- Use `/forecast` to see where an item's price is heading
+- Use `/watch` to get notified the moment an item hits your target price
+- Use `/portfolio` to track your investments and see ROI
+- Use `/health` to check if the overall market is bullish or bearish
 - History data is kept for 90 days then auto-pruned
