@@ -245,6 +245,29 @@ Compare 2-5 items side by side with investment scores and suggestions.
 
 ---
 
+### /top
+Show top 100 items with configurable sorting. Paginated with ⏮ ◀ ▶ ⏭ buttons.
+
+**Usage:**
+```
+/top                              → default: Investment Grade
+/top sort: 📊 Investment Grade    → best investments overall
+/top sort: 💎 TrueVal (highest)   → most expensive by TrueVal
+/top sort: 🏪 Trade Hub (highest) → most expensive by Trade Hub
+/top sort: 🪙 Proto (highest)     → highest Proto value
+/top sort: 🔥 Demand (highest)    → High/Limited demand first
+/top sort: 📈 Rising items        → only items with Rising trend
+/top sort: 📉 Dropping items      → only items with Dropping trend
+```
+
+**Shows (per item):**
+- Investment grade (S/A/B/C/D/F) + score
+- TrueVal, Trade Hub, Proto
+- Demand, Trend, Adjusted Value
+- 5 items per page, 🥇🥈🥉 for top 3
+
+---
+
 ## Quantity Format
 
 Quantity goes **before** the item name only:

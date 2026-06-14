@@ -30,6 +30,7 @@ That's it — all commands work immediately after inviting.
 | `/portfolio` | Track your holdings with ROI |
 | `/health` | Market health index (bullish/bearish) |
 | `/compare` | Compare 2-5 items side by side |
+| `/top` | Top 100 items (sortable, paginated) |
 | `/help` | Show quick usage guide |
 | `/about` | Bot info and creator details |
 
@@ -243,6 +244,8 @@ npm start         # Start the bot
     │   ├── watch.js          # /watch (price alerts)
     │   ├── portfolio.js      # /portfolio (holdings + ROI)
     │   ├── health.js         # /health (market index)
+    │   ├── compare.js       # /compare (side-by-side)
+    │   ├── top.js           # /top (sortable leaderboard)
     │   ├── subscribe.js      # /subscribe + /unsubscribe
     │   ├── sync.js           # /sync
     │   ├── help.js           # /help
