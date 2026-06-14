@@ -28,6 +28,7 @@ const watchCmd = require("./commands/watch");
 const portfolioCmd = require("./commands/portfolio");
 const healthCmd = require("./commands/health");
 const compareCmd = require("./commands/compare");
+const topCmd = require("./commands/top");
 
 /** Discord client with required intents */
 const client = new Client({
@@ -102,6 +103,41 @@ async function syncAndNotify() {
 cron.schedule("0 * * * *", async () => {
   console.log("⏰ Cron triggered: syncing values...");
   await syncAndNotify();
+});
+
+// --- Guild join/leave events (notify bot owner) ---
+const { BOT_OWNER_ID } = require("./utils/permissions");
+
+client.on("guildCreate", async (guild) => {
+  console.log(`📥 Joined server: ${guild.name} (${guild.id}) — ${guild.memberCount} members — Owner: ${guild.ownerId}`);
+  try {
+    const owner = await client.users.fetch(BOT_OWNER_ID);
+    if (owner) {
+      await owner.send(
+        `📥 **Bot added to a new server!**\n\n` +
+        `**Server:** ${guild.name}\n` +
+        `**ID:** ${guild.id}\n` +
+        `**Members:** ${guild.memberCount}\n` +
+        `**Owner:** <@${guild.ownerId}>\n` +
+        `**Total servers:** ${client.guilds.cache.size}`
+      );
+    }
+  } catch (e) { /* Failed to DM owner */ }
+});
+
+client.on("guildDelete", async (guild) => {
+  console.log(`📤 Left server: ${guild.name} (${guild.id})`);
+  try {
+    const owner = await client.users.fetch(BOT_OWNER_ID);
+    if (owner) {
+      await owner.send(
+        `📤 **Bot removed from a server.**\n\n` +
+        `**Server:** ${guild.name}\n` +
+        `**ID:** ${guild.id}\n` +
+        `**Total servers:** ${client.guilds.cache.size}`
+      );
+    }
+  } catch (e) { /* Failed to DM owner */ }
 });
 
 // --- Bot ready event ---
@@ -199,6 +235,9 @@ client.on("interactionCreate", async (interaction) => {
         break;
       case "compare":
         await compareCmd.execute(interaction);
+        break;
+      case "top":
+        await topCmd.execute(interaction, items);
         break;
       default:
         break;

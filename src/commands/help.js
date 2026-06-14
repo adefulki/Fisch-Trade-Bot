@@ -22,6 +22,7 @@ async function execute(interaction) {
       `\`/health\` — Market health (bullish/bearish)`,
       `\`/forecast\` — Price prediction`,
       `\`/compare\` — Compare 2-5 items side by side`,
+      `\`/top\` — Top 100 most valuable (paginated)`,
       ``,
       `**📈 HISTORY & CHARTS**`,
       `\`/history\` — Price chart + change log`,

@@ -1,10 +1,11 @@
 /**
  * /subscribe and /unsubscribe commands — Manage value change notifications for a server.
- * Only users with Manage Channels permission can subscribe/unsubscribe.
+ * Only server owner or bot owner can subscribe/unsubscribe.
  */
 
-const { EmbedBuilder, PermissionFlagsBits } = require("discord.js");
+const { EmbedBuilder } = require("discord.js");
 const { subscribe, unsubscribe, getSubscription } = require("../data/subscriptions");
+const { isAdmin } = require("../utils/permissions");
 
 /**
  * Handle the /subscribe slash command.
@@ -12,10 +13,10 @@ const { subscribe, unsubscribe, getSubscription } = require("../data/subscriptio
  * @param {object} interaction - Discord interaction object
  */
 async function executeSubscribe(interaction) {
-  // Check permissions — only admins/mods can subscribe
-  if (!interaction.memberPermissions.has(PermissionFlagsBits.ManageChannels)) {
+  // Only server owner or bot owner can subscribe
+  if (!isAdmin(interaction)) {
     await interaction.reply({
-      content: "⚠️ You need **Manage Channels** permission to subscribe to notifications.",
+      content: "⚠️ Only the **server owner** can subscribe to notifications.",
       ephemeral: true,
     });
     return;
@@ -57,10 +58,10 @@ async function executeSubscribe(interaction) {
  * @param {object} interaction - Discord interaction object
  */
 async function executeUnsubscribe(interaction) {
-  // Check permissions
-  if (!interaction.memberPermissions.has(PermissionFlagsBits.ManageChannels)) {
+  // Only server owner or bot owner can unsubscribe
+  if (!isAdmin(interaction)) {
     await interaction.reply({
-      content: "⚠️ You need **Manage Channels** permission to unsubscribe.",
+      content: "⚠️ Only the **server owner** can unsubscribe from notifications.",
       ephemeral: true,
     });
     return;

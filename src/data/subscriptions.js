@@ -47,14 +47,20 @@ function saveSubscriptions(subs) {
 
 /**
  * Subscribe a channel to receive value change notifications.
- * Only one channel per server allowed. Overwrites previous subscription.
+ * One subscription per guild. One notification per channel (no duplicates).
  * @param {string} guildId - Discord server ID
  * @param {string} channelId - Discord channel ID
  * @param {string} userId - User who subscribed
- * @returns {{success: boolean, replaced: boolean}} Result status
+ * @returns {{success: boolean, replaced: boolean, message: string}}
  */
 function subscribe(guildId, channelId, userId) {
   const subs = loadSubscriptions();
+
+  // Check if this channel is already subscribed by another guild
+  const channelExists = subs.find((s) => s.channelId === channelId && s.guildId !== guildId);
+  if (channelExists) {
+    // Same channel — just update the entry
+  }
 
   // Check if this guild already has a subscription
   const existingIdx = subs.findIndex((s) => s.guildId === guildId);
@@ -68,6 +74,12 @@ function subscribe(guildId, channelId, userId) {
       subscribedAt: new Date().toISOString(),
     };
   } else {
+    // Check if this channel is already receiving notifications (from another guild entry)
+    const alreadyHasChannel = subs.find((s) => s.channelId === channelId);
+    if (alreadyHasChannel) {
+      return { success: true, replaced: false, message: "This channel is already receiving notifications." };
+    }
+
     subs.push({
       guildId,
       channelId,
@@ -77,7 +89,7 @@ function subscribe(guildId, channelId, userId) {
   }
 
   saveSubscriptions(subs);
-  return { success: true, replaced };
+  return { success: true, replaced, message: replaced ? "Subscription updated." : "Subscribed." };
 }
 
 /**
@@ -94,12 +106,14 @@ function unsubscribe(guildId) {
 }
 
 /**
- * Get all subscribed channel IDs (for posting notifications).
- * @returns {string[]} Array of channel IDs
+ * Get all unique subscribed channel IDs (for posting notifications).
+ * Deduplicates in case multiple guilds somehow share a channel.
+ * @returns {string[]} Array of unique channel IDs
  */
 function getSubscribedChannels() {
   const subs = loadSubscriptions();
-  return subs.map((s) => s.channelId);
+  const unique = [...new Set(subs.map((s) => s.channelId))];
+  return unique;
 }
 
 /**

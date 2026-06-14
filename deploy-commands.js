@@ -148,6 +148,9 @@ const commands = [
     .addStringOption((option) =>
       option.setName("items").setDescription("Items to compare (comma-separated, e.g. Evangeline, Nocturne, Curse IV)").setRequired(true)
     ),
+  new SlashCommandBuilder()
+    .setName("top")
+    .setDescription("Show top 100 most valuable items (paginated)"),
 ].map((cmd) => cmd.toJSON());
 
 const rest = new REST({ version: "10" }).setToken(process.env.DISCORD_TOKEN);

@@ -1,5 +1,6 @@
 /**
  * /sync command — Manually sync values from game.guide.
+ * Restricted to bot owner only.
  */
 
 const { scrapeValues, loadItems } = require("../services/scraper");
@@ -7,14 +8,24 @@ const { recordChanges } = require("../data/history");
 const { postChangeNotification } = require("../services/notifier");
 const { setItems } = require("../services/matcher");
 const { setItems: setAutocompleteItems } = require("../services/autocomplete");
+const { isBotOwner } = require("../utils/permissions");
 
 /**
  * Handle the /sync slash command interaction.
+ * Only the bot owner can run this command.
  * @param {object} interaction - Discord interaction object
- * @param {object} context - Bot context with client and getItems/setItemsRef
- * @returns {Array|null} Updated items array, or null if failed
+ * @param {object} context - Bot context with client and setItems
  */
 async function execute(interaction, context) {
+  // Owner-only check
+  if (!isBotOwner(interaction.user.id)) {
+    await interaction.reply({
+      content: "⚠️ Only the bot owner can use this command.",
+      ephemeral: true,
+    });
+    return;
+  }
+
   await interaction.deferReply({ ephemeral: true });
 
   const { success, changes } = await scrapeValues();

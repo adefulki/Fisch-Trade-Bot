@@ -170,14 +170,16 @@ async function postChangeNotification(client, changes) {
     return;
   }
 
-  // Collect all channel IDs to notify
+  // Collect unique channel IDs (Set prevents duplicates)
   const channelIds = new Set();
 
+  // Env-configured channel (legacy fallback)
   const envChannel = process.env.NOTIFICATION_CHANNEL_ID;
-  if (envChannel && envChannel !== "paste_your_channel_id_here") {
+  if (envChannel && envChannel !== "paste_your_channel_id_here" && envChannel.length > 10) {
     channelIds.add(envChannel);
   }
 
+  // All subscribed channels (already deduplicated)
   const subscribedChannels = getSubscribedChannels();
   for (const id of subscribedChannels) {
     channelIds.add(id);
@@ -188,7 +190,7 @@ async function postChangeNotification(client, changes) {
     return;
   }
 
-  console.log(`📢 Posting embed notifications to ${channelIds.size} channel(s)...`);
+  console.log(`📢 Posting embed notifications to ${channelIds.size} unique channel(s)...`);
 
   let successCount = 0;
   let failCount = 0;
