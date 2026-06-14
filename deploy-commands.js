@@ -150,7 +150,19 @@ const commands = [
     ),
   new SlashCommandBuilder()
     .setName("top")
-    .setDescription("Show top 100 most valuable items (paginated)"),
+    .setDescription("Show top 100 most valuable items (paginated)")
+    .addStringOption((option) =>
+      option.setName("sort").setDescription("Sort by (default: grade)").setRequired(false)
+        .addChoices(
+          { name: "📊 Investment Grade", value: "grade" },
+          { name: "💎 TrueVal (highest)", value: "trueval" },
+          { name: "🏪 Trade Hub (highest)", value: "tradehub" },
+          { name: "🪙 Proto (highest)", value: "proto" },
+          { name: "🔥 Demand (highest)", value: "demand" },
+          { name: "📈 Rising items", value: "rising" },
+          { name: "📉 Dropping items", value: "dropping" },
+        )
+    ),
 ].map((cmd) => cmd.toJSON());
 
 const rest = new REST({ version: "10" }).setToken(process.env.DISCORD_TOKEN);

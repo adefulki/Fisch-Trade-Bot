@@ -1,5 +1,5 @@
 /**
- * /top command — Show top 100 items sorted by investment grade.
+ * /top command — Show top 100 items with configurable sort.
  * Shows all values (TrueVal, Trade Hub, Proto, Demand, Trend) with pagination.
  */
 
@@ -11,32 +11,41 @@ const { formatVal, trendEmoji } = require("../utils/format");
 const PER_PAGE = 5;
 const MAX_ITEMS = 100;
 
+/** Sort option labels for embed title */
+const SORT_LABELS = {
+  grade: "Investment Grade",
+  trueval: "TrueVal",
+  tradehub: "Trade Hub",
+  proto: "Proto",
+  demand: "Demand",
+  rising: "Rising Trend",
+  dropping: "Dropping Trend",
+};
+
+/** Demand order for sorting (highest first) */
+const DEMAND_ORDER = { "Limited": 5, "High": 4, "Medium": 3, "Low": 2, "Very Low": 1, "-": 0 };
+
 /**
  * Score an item for investment quality (0-100).
- * Same logic as /compare.
  * @param {object} item - Item data
  * @returns {{score: number, grade: string}}
  */
 function scoreItem(item) {
   let score = 50;
 
-  // Demand
   if (item.demand === "Limited") score += 20;
   else if (item.demand === "High") score += 15;
   else if (item.demand === "Low") score -= 10;
   else if (item.demand === "Very Low") score -= 20;
 
-  // Trend
   if (item.trend === "Rising") score += 20;
   else if (item.trend === "Stable") score += 5;
   else if (item.trend === "Dropping") score -= 15;
   else if (item.trend === "Unstable") score -= 10;
 
-  // Value presence
   if (item.trueVal && item.tradeHub) score += 5;
   else if (!item.trueVal && !item.tradeHub) score -= 5;
 
-  // Forecast bonus (quick check)
   const forecast = forecastItem(item, 14, 3);
   if (forecast) {
     if (forecast.direction === "Rising" && forecast.confidence !== "Low") score += 10;
@@ -57,6 +66,50 @@ function scoreItem(item) {
 }
 
 /**
+ * Sort items based on the selected sort option.
+ * @param {Array} items - Items to sort
+ * @param {string} sortBy - Sort option
+ * @returns {Array} Sorted items (with score/grade attached)
+ */
+function sortItems(items, sortBy) {
+  // Filter items that have at least some value
+  let filtered = items.filter((item) => item.trueVal || item.tradeHub || (item.proto && item.proto > 0));
+
+  // Attach score/grade to all items (needed for display)
+  filtered = filtered.map((item) => {
+    const { score, grade } = scoreItem(item);
+    const val = getAdjustedValue(item);
+    return { ...item, score, grade, adjustedValue: val.adjusted };
+  });
+
+  switch (sortBy) {
+    case "trueval":
+      return filtered.filter((i) => i.trueVal > 0).sort((a, b) => b.trueVal - a.trueVal);
+    case "tradehub":
+      return filtered.filter((i) => i.tradeHub > 0).sort((a, b) => b.tradeHub - a.tradeHub);
+    case "proto":
+      return filtered.filter((i) => i.proto > 0).sort((a, b) => b.proto - a.proto);
+    case "demand":
+      return filtered.sort((a, b) => {
+        const diff = (DEMAND_ORDER[b.demand] || 0) - (DEMAND_ORDER[a.demand] || 0);
+        if (diff !== 0) return diff;
+        return (b.trueVal || 0) - (a.trueVal || 0); // Secondary sort by value
+      });
+    case "rising":
+      return filtered
+        .filter((i) => i.trend === "Rising")
+        .sort((a, b) => (b.trueVal || 0) - (a.trueVal || 0));
+    case "dropping":
+      return filtered
+        .filter((i) => i.trend === "Dropping")
+        .sort((a, b) => (b.trueVal || 0) - (a.trueVal || 0));
+    case "grade":
+    default:
+      return filtered.sort((a, b) => b.score - a.score);
+  }
+}
+
+/**
  * Handle the /top slash command interaction.
  * @param {object} interaction - Discord interaction object
  * @param {Array} items - Current item database
@@ -64,23 +117,15 @@ function scoreItem(item) {
 async function execute(interaction, items) {
   await interaction.deferReply();
 
-  // Score and sort all items with values
-  const scored = items
-    .filter((item) => item.trueVal || item.tradeHub || (item.proto && item.proto > 0))
-    .map((item) => {
-      const { score, grade } = scoreItem(item);
-      const val = getAdjustedValue(item);
-      return { ...item, score, grade, adjustedValue: val.adjusted };
-    })
-    .sort((a, b) => b.score - a.score)
-    .slice(0, MAX_ITEMS);
+  const sortBy = interaction.options.getString("sort") || "grade";
+  const sorted = sortItems(items, sortBy).slice(0, MAX_ITEMS);
 
-  if (scored.length === 0) {
-    await interaction.editReply("⚠️ No items with values found.");
+  if (sorted.length === 0) {
+    await interaction.editReply(`⚠️ No items found for sort: **${SORT_LABELS[sortBy] || sortBy}**.`);
     return;
   }
 
-  const totalPages = Math.ceil(scored.length / PER_PAGE);
+  const totalPages = Math.ceil(sorted.length / PER_PAGE);
   let currentPage = 0;
 
   /**
@@ -88,8 +133,8 @@ async function execute(interaction, items) {
    */
   function buildEmbed() {
     const start = currentPage * PER_PAGE;
-    const end = Math.min(start + PER_PAGE, scored.length);
-    const pageItems = scored.slice(start, end);
+    const end = Math.min(start + PER_PAGE, sorted.length);
+    const pageItems = sorted.slice(start, end);
 
     const lines = pageItems.map((item, i) => {
       const rank = start + i + 1;
@@ -102,10 +147,10 @@ async function execute(interaction, items) {
     });
 
     return new EmbedBuilder()
-      .setTitle(`🏆 TOP ${scored.length} ITEMS (by Investment Grade)`)
+      .setTitle(`🏆 TOP ${sorted.length} — Sorted by ${SORT_LABELS[sortBy] || sortBy}`)
       .setDescription(lines.join("\n\n"))
       .setColor(0xffd700)
-      .setFooter({ text: `Page ${currentPage + 1}/${totalPages} • Sorted by score (demand + trend + forecast) • Source: game.guide` });
+      .setFooter({ text: `Page ${currentPage + 1}/${totalPages} • Source: game.guide` });
   }
 
   /**
@@ -113,37 +158,16 @@ async function execute(interaction, items) {
    */
   function buildButtons() {
     return new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId("top_first")
-        .setLabel("⏮")
-        .setStyle(ButtonStyle.Secondary)
-        .setDisabled(currentPage === 0),
-      new ButtonBuilder()
-        .setCustomId("top_prev")
-        .setLabel("◀")
-        .setStyle(ButtonStyle.Primary)
-        .setDisabled(currentPage === 0),
-      new ButtonBuilder()
-        .setCustomId("top_page")
-        .setLabel(`${currentPage + 1}/${totalPages}`)
-        .setStyle(ButtonStyle.Secondary)
-        .setDisabled(true),
-      new ButtonBuilder()
-        .setCustomId("top_next")
-        .setLabel("▶")
-        .setStyle(ButtonStyle.Primary)
-        .setDisabled(currentPage === totalPages - 1),
-      new ButtonBuilder()
-        .setCustomId("top_last")
-        .setLabel("⏭")
-        .setStyle(ButtonStyle.Secondary)
-        .setDisabled(currentPage === totalPages - 1),
+      new ButtonBuilder().setCustomId("top_first").setLabel("⏮").setStyle(ButtonStyle.Secondary).setDisabled(currentPage === 0),
+      new ButtonBuilder().setCustomId("top_prev").setLabel("◀").setStyle(ButtonStyle.Primary).setDisabled(currentPage === 0),
+      new ButtonBuilder().setCustomId("top_page").setLabel(`${currentPage + 1}/${totalPages}`).setStyle(ButtonStyle.Secondary).setDisabled(true),
+      new ButtonBuilder().setCustomId("top_next").setLabel("▶").setStyle(ButtonStyle.Primary).setDisabled(currentPage === totalPages - 1),
+      new ButtonBuilder().setCustomId("top_last").setLabel("⏭").setStyle(ButtonStyle.Secondary).setDisabled(currentPage === totalPages - 1),
     );
   }
 
   const msg = await interaction.editReply({ embeds: [buildEmbed()], components: [buildButtons()] });
 
-  // Collect button interactions for 3 minutes
   const collector = msg.createMessageComponentCollector({
     componentType: ComponentType.Button,
     time: 180000,
