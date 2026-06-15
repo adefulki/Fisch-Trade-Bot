@@ -101,7 +101,7 @@ async function execute(interaction) {
 
   // Chart 1: TrueVal + Trade Hub
   if (valuePoints.length >= 2) {
-    const chartUrl = buildValueChartUrl(item.name, valuePoints);
+    const chartUrl = await buildValueChartUrl(item.name, valuePoints);
 
     // Calculate stats
     const trueVals = valuePoints.map((p) => p.trueVal).filter(Boolean);
@@ -130,7 +130,7 @@ async function execute(interaction) {
 
   // Chart 2: Proto
   if (protoPoints.length >= 2) {
-    const chartUrl = buildProtoChartUrl(item.name, protoPoints);
+    const chartUrl = await buildProtoChartUrl(item.name, protoPoints);
 
     const protos = protoPoints.map((p) => p.proto).filter(Boolean);
     let protoStats = `**Proto:** ${item.proto || "N/A"}`;

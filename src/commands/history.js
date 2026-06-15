@@ -86,7 +86,7 @@ async function execute(interaction) {
   }
 
   // Generate chart URLs
-  const chartUrl = valuePoints.length >= 2 ? buildValueChartUrl(item.name, valuePoints) : null;
+  const chartUrl = valuePoints.length >= 2 ? await buildValueChartUrl(item.name, valuePoints) : null;
 
   // Build proto data points
   const protoPoints = [];
@@ -103,7 +103,7 @@ async function execute(interaction) {
   if (protoPoints.length > 0 && item.proto) {
     protoPoints.push({ date: "Now", proto: item.proto });
   }
-  const protoChartUrl = protoPoints.length >= 2 ? buildProtoChartUrl(item.name, protoPoints) : null;
+  const protoChartUrl = protoPoints.length >= 2 ? await buildProtoChartUrl(item.name, protoPoints) : null;
 
   // Build header info
   const headerLines = [

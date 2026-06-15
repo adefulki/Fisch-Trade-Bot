@@ -99,7 +99,7 @@ async function execute(interaction) {
     }
 
     const chartUrl = valuePoints.length >= 2
-      ? buildValueChartUrl(item.name, valuePoints)
+      ? await buildValueChartUrl(item.name, valuePoints)
       : null;
 
     // Format recent changes (newest first)

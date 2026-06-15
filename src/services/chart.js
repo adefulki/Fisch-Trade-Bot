@@ -1,17 +1,44 @@
 /**
  * Chart generation service using QuickChart.io API.
- * Generates chart image URLs for Discord embeds.
+ * Uses POST endpoint to generate short URLs (avoids URL length limits).
  */
 
-const BASE_URL = "https://quickchart.io/chart";
+const axios = require("axios");
+
+const API_URL = "https://quickchart.io/chart/create";
 
 /**
- * Build a QuickChart URL for a dual-line chart showing TrueVal and Trade Hub over time.
+ * Create a short chart URL via QuickChart POST API.
+ * @param {object} chartConfig - Chart.js configuration object
+ * @returns {string|null} Short URL to the chart image, or null on failure
+ */
+async function createChartUrl(chartConfig) {
+  try {
+    const response = await axios.post(API_URL, {
+      chart: chartConfig,
+      width: 600,
+      height: 300,
+      backgroundColor: "#232428",
+      format: "png",
+    }, { timeout: 10000 });
+
+    if (response.data && response.data.url) {
+      return response.data.url;
+    }
+    return null;
+  } catch (error) {
+    console.error("⚠️ Chart generation failed:", error.message);
+    return null;
+  }
+}
+
+/**
+ * Build a dual-line chart showing TrueVal and Trade Hub over time.
  * @param {string} itemName - The item name (used as chart title)
  * @param {Array<{date: string, trueVal: number|null, tradeHub: number|null}>} dataPoints - Data points
- * @returns {string} URL to the rendered chart image
+ * @returns {Promise<string|null>} Short URL to the chart image
  */
-function buildValueChartUrl(itemName, dataPoints) {
+async function buildValueChartUrl(itemName, dataPoints) {
   if (dataPoints.length === 0) return null;
 
   const labels = dataPoints.map((p) => p.date);
@@ -48,46 +75,25 @@ function buildValueChartUrl(itemName, dataPoints) {
       ],
     },
     options: {
-      title: {
-        display: true,
-        text: `${itemName} — TrueVal & Trade Hub`,
-        fontSize: 14,
-        fontColor: "#ffffff",
-      },
-      legend: {
-        labels: { fontColor: "#cccccc" },
-      },
+      title: { display: true, text: `${itemName} — TrueVal & Trade Hub`, fontSize: 14, fontColor: "#ffffff" },
+      legend: { labels: { fontColor: "#cccccc" } },
       scales: {
-        xAxes: [{
-          ticks: { fontColor: "#aaaaaa", maxTicksLimit: 10 },
-          gridLines: { color: "rgba(255,255,255,0.1)" },
-        }],
-        yAxes: [{
-          ticks: {
-            fontColor: "#aaaaaa",
-            callback: (val) => {
-              if (val >= 1000000) return `${(val / 1000000).toFixed(1)}M`;
-              if (val >= 1000) return `${(val / 1000).toFixed(0)}K`;
-              return val;
-            },
-          },
-          gridLines: { color: "rgba(255,255,255,0.1)" },
-        }],
+        xAxes: [{ ticks: { fontColor: "#aaaaaa", maxTicksLimit: 10 }, gridLines: { color: "rgba(255,255,255,0.1)" } }],
+        yAxes: [{ ticks: { fontColor: "#aaaaaa", callback: (val) => val >= 1000000 ? `${(val/1000000).toFixed(1)}M` : val >= 1000 ? `${(val/1000).toFixed(0)}K` : val }, gridLines: { color: "rgba(255,255,255,0.1)" } }],
       },
     },
   };
 
-  const chartJson = encodeURIComponent(JSON.stringify(chartConfig));
-  return `${BASE_URL}?c=${chartJson}&w=600&h=300&bkg=%23232428&f=png`;
+  return await createChartUrl(chartConfig);
 }
 
 /**
- * Build a QuickChart URL for a single-line chart showing Proto value over time.
+ * Build a single-line chart showing Proto value over time.
  * @param {string} itemName - The item name (used as chart title)
  * @param {Array<{date: string, proto: number|null}>} dataPoints - Data points
- * @returns {string} URL to the rendered chart image
+ * @returns {Promise<string|null>} Short URL to the chart image
  */
-function buildProtoChartUrl(itemName, dataPoints) {
+async function buildProtoChartUrl(itemName, dataPoints) {
   if (dataPoints.length === 0) return null;
 
   const labels = dataPoints.map((p) => p.date);
@@ -112,32 +118,16 @@ function buildProtoChartUrl(itemName, dataPoints) {
       ],
     },
     options: {
-      title: {
-        display: true,
-        text: `${itemName} — Proto Value`,
-        fontSize: 14,
-        fontColor: "#ffffff",
-      },
-      legend: {
-        labels: { fontColor: "#cccccc" },
-      },
+      title: { display: true, text: `${itemName} — Proto Value`, fontSize: 14, fontColor: "#ffffff" },
+      legend: { labels: { fontColor: "#cccccc" } },
       scales: {
-        xAxes: [{
-          ticks: { fontColor: "#aaaaaa", maxTicksLimit: 10 },
-          gridLines: { color: "rgba(255,255,255,0.1)" },
-        }],
-        yAxes: [{
-          ticks: {
-            fontColor: "#aaaaaa",
-          },
-          gridLines: { color: "rgba(255,255,255,0.1)" },
-        }],
+        xAxes: [{ ticks: { fontColor: "#aaaaaa", maxTicksLimit: 10 }, gridLines: { color: "rgba(255,255,255,0.1)" } }],
+        yAxes: [{ ticks: { fontColor: "#aaaaaa" }, gridLines: { color: "rgba(255,255,255,0.1)" } }],
       },
     },
   };
 
-  const chartJson = encodeURIComponent(JSON.stringify(chartConfig));
-  return `${BASE_URL}?c=${chartJson}&w=600&h=300&bkg=%23232428&f=png`;
+  return await createChartUrl(chartConfig);
 }
 
 module.exports = { buildValueChartUrl, buildProtoChartUrl };
