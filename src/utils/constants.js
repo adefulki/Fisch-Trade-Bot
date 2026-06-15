@@ -6,6 +6,7 @@
 /** Demand multipliers for adjusted value calculation */
 const DEMAND_MULTIPLIER = {
   "Limited": 1.25,
+  "Very High": 1.15,
   "High": 1.10,
   "Medium": 1.00,
   "Low": 0.90,

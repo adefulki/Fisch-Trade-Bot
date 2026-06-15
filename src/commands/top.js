@@ -23,7 +23,7 @@ const SORT_LABELS = {
 };
 
 /** Demand order for sorting (highest first) */
-const DEMAND_ORDER = { "Limited": 5, "High": 4, "Medium": 3, "Low": 2, "Very Low": 1, "-": 0 };
+const DEMAND_ORDER = { "Limited": 6, "Very High": 5, "High": 4, "Medium": 3, "Low": 2, "Very Low": 1, "-": 0 };
 
 /**
  * Score an item for investment quality (0-100).
@@ -34,6 +34,7 @@ function scoreItem(item) {
   let score = 50;
 
   if (item.demand === "Limited") score += 20;
+  else if (item.demand === "Very High") score += 18;
   else if (item.demand === "High") score += 15;
   else if (item.demand === "Low") score -= 10;
   else if (item.demand === "Very Low") score -= 20;

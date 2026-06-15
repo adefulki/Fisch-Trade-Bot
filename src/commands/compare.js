@@ -22,6 +22,7 @@ function scoreItem(item, forecast) {
 
   // Demand scoring (+/- up to 20)
   if (item.demand === "Limited") { score += 20; reasons.push("Limited rarity"); }
+  else if (item.demand === "Very High") { score += 18; reasons.push("Very High demand"); }
   else if (item.demand === "High") { score += 15; reasons.push("High demand"); }
   else if (item.demand === "Medium") { score += 0; }
   else if (item.demand === "Low") { score -= 10; reasons.push("Low demand"); }

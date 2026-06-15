@@ -116,7 +116,7 @@ async function scrapeValues() {
       const trueValMatch = text.match(/TrueVal:\s*(S\$\s*[\d.]+[MK]?|N\/A)/i);
       const tradeHubMatch = text.match(/Trade Hub:\s*(S\$\s*[\d.]+[MK]?|N\/A)/i);
       const protoMatch = text.match(/Proto:\s*([\d.]+\s*K?|N\/A|TBD)/i);
-      const demandMatch = text.match(/Demand:\s*(Very Low|Low|Medium|High|Limited|-)/i);
+      const demandMatch = text.match(/Demand:\s*(Very Low|Very High|Low|Medium|High|Limited|-)/i);
       const trendMatch = text.match(/Trend:\s*(Rising|Stable|Dropping|Unstable|-)/i);
 
       if (!demandMatch && !trendMatch) return;
