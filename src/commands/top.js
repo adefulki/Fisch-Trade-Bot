@@ -33,20 +33,40 @@ const DEMAND_ORDER = { "Limited": 6, "Very High": 5, "High": 4, "Medium": 3, "Lo
 function scoreItem(item) {
   let score = 50;
 
+  // Demand
   if (item.demand === "Limited") score += 20;
   else if (item.demand === "Very High") score += 18;
   else if (item.demand === "High") score += 15;
   else if (item.demand === "Low") score -= 10;
   else if (item.demand === "Very Low") score -= 20;
 
+  // Trend
   if (item.trend === "Rising") score += 20;
   else if (item.trend === "Stable") score += 5;
   else if (item.trend === "Dropping") score -= 15;
   else if (item.trend === "Unstable") score -= 10;
 
-  if (item.trueVal && item.tradeHub) score += 5;
+  // Value
+  const val = item.trueVal || item.tradeHub || 0;
+  if (val >= 3000000) score += 15;
+  else if (val >= 1000000) score += 10;
+  else if (val >= 500000) score += 5;
+  else if (val >= 100000) score += 2;
+  else if (val > 0 && val < 10000) score -= 5;
+
+  // Proto
+  const proto = item.proto || 0;
+  if (proto >= 1000) score += 10;
+  else if (proto >= 500) score += 7;
+  else if (proto >= 100) score += 4;
+  else if (proto >= 50) score += 2;
+  else if (proto > 0 && proto < 10) score -= 3;
+
+  // Value presence
+  if (item.trueVal && item.tradeHub) score += 3;
   else if (!item.trueVal && !item.tradeHub) score -= 5;
 
+  // Forecast
   const forecast = forecastItem(item, 14, 3);
   if (forecast) {
     if (forecast.direction === "Rising" && forecast.confidence !== "Low") score += 10;

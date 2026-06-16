@@ -11,7 +11,7 @@ const { formatVal, trendEmoji } = require("../utils/format");
 
 /**
  * Score an item for investment quality (0-100).
- * Based on: demand, trend, value stability, and forecast direction.
+ * Based on: demand, trend, value, and forecast direction.
  * @param {object} item - Item data
  * @param {object|null} forecast - Forecast data (if available)
  * @returns {{score: number, reasons: string[]}}
@@ -34,6 +34,22 @@ function scoreItem(item, forecast) {
   else if (item.trend === "Dropping") { score -= 15; reasons.push("Dropping"); }
   else if (item.trend === "Unstable") { score -= 10; reasons.push("Unstable"); }
 
+  // Value scoring (+/- up to 15) — higher value items are generally better investments
+  const val = item.trueVal || item.tradeHub || 0;
+  if (val >= 3000000) { score += 15; reasons.push("Ultra-high value"); }
+  else if (val >= 1000000) { score += 10; reasons.push("High value"); }
+  else if (val >= 500000) { score += 5; }
+  else if (val >= 100000) { score += 2; }
+  else if (val > 0 && val < 10000) { score -= 5; reasons.push("Low value"); }
+
+  // Proto scoring (+/- up to 10) — higher proto = more community-valued
+  const proto = item.proto || 0;
+  if (proto >= 1000) { score += 10; reasons.push("Ultra-high proto"); }
+  else if (proto >= 500) { score += 7; }
+  else if (proto >= 100) { score += 4; }
+  else if (proto >= 50) { score += 2; }
+  else if (proto > 0 && proto < 10) { score -= 3; }
+
   // Forecast scoring (+/- up to 15)
   if (forecast) {
     if (forecast.direction === "Rising" && forecast.confidence !== "Low") {
@@ -43,8 +59,8 @@ function scoreItem(item, forecast) {
     }
   }
 
-  // Value presence scoring (+/- up to 5)
-  if (item.trueVal && item.tradeHub) { score += 5; }
+  // Value presence scoring
+  if (item.trueVal && item.tradeHub) { score += 3; }
   else if (!item.trueVal && !item.tradeHub) { score -= 5; reasons.push("No listed value"); }
 
   // Clamp
