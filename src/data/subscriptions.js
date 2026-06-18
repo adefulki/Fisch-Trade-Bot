@@ -100,8 +100,10 @@ function subscribe(guildId, channelId, userId) {
 function unsubscribe(guildId) {
   const subs = loadSubscriptions();
   const before = subs.length;
+  console.log(`🔕 Unsubscribe: guildId=${guildId}, current subs=${before}`, subs.map(s => ({ guild: s.guildId, channel: s.channelId })));
   const filtered = subs.filter((s) => s.guildId !== guildId);
   saveSubscriptions(filtered);
+  console.log(`🔕 After unsubscribe: ${filtered.length} remaining`);
   return filtered.length < before;
 }
 

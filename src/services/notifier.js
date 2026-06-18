@@ -8,6 +8,19 @@ const { getSubscribedChannels } = require("../data/subscriptions");
 const { formatVal } = require("../utils/format");
 
 /**
+ * Parse a formatted value string like "S$ 1.00M", "S$ 998.0K", "N/A" to a number.
+ * @param {string} str - Formatted value string
+ * @returns {number} Numeric value
+ */
+function parseNotifValue(str) {
+  if (!str || str === "N/A") return 0;
+  str = str.replace(/\*\*/g, "").replace("S$", "").replace(/,/g, "").trim();
+  if (str.includes("M")) return parseFloat(str) * 1000000;
+  if (str.includes("K")) return parseFloat(str) * 1000;
+  return parseFloat(str) || 0;
+}
+
+/**
  * Build embed(s) from detected changes.
  * Separates into VALUE UP, VALUE DOWN, and OTHER sections.
  * @param {object} changes - Changes object from scraper
@@ -38,8 +51,8 @@ function buildChangeEmbeds(changes) {
       let hasUp = false, hasDown = false;
       for (const c of item.changes) {
         if (c.field === "TrueVal" || c.field === "Trade Hub" || c.field === "Proto") {
-          const beforeNum = parseFloat(c.before.replace(/[S$, ]/g, "").replace("M", "000000").replace("K", "000").replace("N/A", "0")) || 0;
-          const afterNum = parseFloat(c.after.replace(/[S$, ]/g, "").replace("M", "000000").replace("K", "000").replace("N/A", "0")) || 0;
+          const beforeNum = parseNotifValue(c.before);
+          const afterNum = parseNotifValue(c.after);
           if (afterNum > beforeNum) hasUp = true;
           if (afterNum < beforeNum) hasDown = true;
         }
@@ -173,16 +186,18 @@ async function postChangeNotification(client, changes) {
   // Collect unique channel IDs (Set prevents duplicates)
   const channelIds = new Set();
 
-  // Env-configured channel (legacy fallback)
-  const envChannel = process.env.NOTIFICATION_CHANNEL_ID;
-  if (envChannel && envChannel !== "paste_your_channel_id_here" && envChannel.length > 10) {
-    channelIds.add(envChannel);
-  }
-
-  // All subscribed channels (already deduplicated)
+  // All subscribed channels (this is the primary source)
   const subscribedChannels = getSubscribedChannels();
   for (const id of subscribedChannels) {
     channelIds.add(id);
+  }
+
+  // Env-configured channel ONLY if no subscriptions exist (legacy fallback)
+  if (channelIds.size === 0) {
+    const envChannel = process.env.NOTIFICATION_CHANNEL_ID;
+    if (envChannel && envChannel !== "paste_your_channel_id_here" && envChannel.length > 10) {
+      channelIds.add(envChannel);
+    }
   }
 
   if (channelIds.size === 0) {
@@ -190,7 +205,7 @@ async function postChangeNotification(client, changes) {
     return;
   }
 
-  console.log(`📢 Posting embed notifications to ${channelIds.size} unique channel(s)...`);
+  console.log(`📢 Posting embed notifications to ${channelIds.size} unique channel(s):`, [...channelIds]);
 
   let successCount = 0;
   let failCount = 0;
