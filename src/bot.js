@@ -110,7 +110,7 @@ const { scrapeTradeListings, findDealsForUser } = require("./services/trade-scan
 const { getPortfolio, getWatchingUsers } = require("./data/portfolio");
 const { formatVal: fmtVal } = require("./utils/format");
 
-cron.schedule("*/15 * * * *", async () => {
+cron.schedule("*/3 * * * *", async () => {
   console.log("🔍 Cron triggered: scanning trade listings...");
   await scanTradeDeals();
 });
