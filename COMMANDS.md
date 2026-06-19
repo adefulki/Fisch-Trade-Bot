@@ -190,7 +190,7 @@ Manage price alerts. Get a DM when an item hits your target price.
 ---
 
 ### /portfolio
-Track your item holdings and see total value with ROI (Return on Investment).
+Track your item holdings, see total value with ROI, and get trade deal alerts.
 
 **Usage:**
 ```
@@ -199,12 +199,26 @@ Track your item holdings and see total value with ROI (Return on Investment).
 /portfolio remove item: Nocturne           → remove item
 /portfolio remove item: Nocturne qty: 1    → remove specific quantity
 /portfolio clear                           → clear everything
+/portfolio watch toggle: 🔔 On            → enable trade deal DM alerts
+/portfolio watch toggle: 🔕 Off           → disable alerts
 ```
 
 **Shows:**
 - Each item with quantity, current value, and ROI %
 - Total portfolio value vs total invested
 - Total ROI (profit/loss)
+
+**Trade Deal Alerts (portfolio watch):**
+- When enabled, the bot scans game.guide trade hub every 15 minutes
+- If someone posts a WIN trade that wants items in your portfolio, you get a DM:
+```
+🟢 WIN +61%
+> 🎁 You get: Curse IV
+> 💸 They want: Platinum Menace, Final Census, Seastrum
+> View Trade (link)
+```
+- Only WIN trades (+15% or more) and OPEN trades are shown
+- Max 5 deals per alert
 
 Max 25 items per user. Buy price is averaged when adding more of the same item.
 

@@ -5,7 +5,7 @@
 
 const { EmbedBuilder } = require("discord.js");
 const { findItem } = require("../services/matcher");
-const { addToPortfolio, removeFromPortfolio, getPortfolio, clearPortfolio } = require("../data/portfolio");
+const { addToPortfolio, removeFromPortfolio, getPortfolio, clearPortfolio, setPortfolioWatch, isPortfolioWatchEnabled } = require("../data/portfolio");
 const { formatVal } = require("../utils/format");
 
 /**
@@ -115,4 +115,27 @@ async function executeClear(interaction) {
   await interaction.reply({ content: "✅ Your portfolio has been cleared.", ephemeral: true });
 }
 
-module.exports = { executeView, executeAdd, executeRemove, executeClear };
+/**
+ * Handle /portfolio watch — Toggle trade deal alerts for portfolio items.
+ * @param {object} interaction - Discord interaction object
+ */
+async function executeWatch(interaction) {
+  const toggle = interaction.options.getString("toggle");
+  const enabled = toggle === "on";
+
+  setPortfolioWatch(interaction.user.id, enabled);
+
+  if (enabled) {
+    await interaction.reply({
+      content: `🔔 **Portfolio Watch: ON**\n\nYou'll be DM'd when W trades appear on game.guide for items in your portfolio.\nScanner runs every 15 minutes.`,
+      ephemeral: true,
+    });
+  } else {
+    await interaction.reply({
+      content: `🔕 **Portfolio Watch: OFF**\n\nYou'll no longer receive trade deal alerts.`,
+      ephemeral: true,
+    });
+  }
+}
+
+module.exports = { executeView, executeAdd, executeRemove, executeClear, executeWatch };

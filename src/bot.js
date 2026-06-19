@@ -105,6 +105,70 @@ cron.schedule("0 * * * *", async () => {
   await syncAndNotify();
 });
 
+// --- Cron Job: Scan trade listings every 15 minutes ---
+const { scrapeTradeListings, findDealsForUser } = require("./services/trade-scanner");
+const { getPortfolio, getWatchingUsers } = require("./data/portfolio");
+const { formatVal: fmtVal } = require("./utils/format");
+
+cron.schedule("*/15 * * * *", async () => {
+  console.log("🔍 Cron triggered: scanning trade listings...");
+  await scanTradeDeals();
+});
+
+/**
+ * Scan trade listings and DM users who have portfolio watch enabled.
+ */
+async function scanTradeDeals() {
+  try {
+    const listings = await scrapeTradeListings();
+    if (listings.length === 0) return;
+
+    const watchingUsers = getWatchingUsers();
+    if (watchingUsers.length === 0) return;
+
+    let alertsSent = 0;
+
+    for (const userId of watchingUsers) {
+      const portfolioData = getPortfolio(userId, items);
+      const portfolioItems = portfolioData.entries.map((e) => e.itemName);
+
+      if (portfolioItems.length === 0) continue;
+
+      // Find deals where someone is OFFERING items the user owns (so user can sell/trade)
+      // or where the trade is a WIN for the buyer on items the user has
+      const deals = findDealsForUser(listings, portfolioItems);
+      if (deals.length === 0) continue;
+
+      // DM the user (max 5 deals)
+      try {
+        const user = await client.users.fetch(userId);
+        if (!user) continue;
+
+        const dealLines = deals.slice(0, 5).map((d) => {
+          const verdict = d.verdict === "WIN" ? `🟢 WIN +${d.percentage}%` : "📋 OPEN";
+          return `${verdict}\n> 🎁 You get: **${d.offering.join(", ")}**\n> 💸 They want: ${d.wanting.join(", ") || "Offers"}\n> [View Trade](${d.url})`;
+        });
+
+        await user.send(
+          `🔍 **Trade Deal Alert!** Found ${deals.length} deal(s) for your portfolio items:\n\n` +
+          dealLines.join("\n\n") +
+          (deals.length > 5 ? `\n\n*...and ${deals.length - 5} more*` : "") +
+          `\n\n*Use \`/portfolio watch toggle: off\` to stop these alerts.*`
+        );
+        alertsSent++;
+      } catch (e) {
+        // User has DMs disabled
+      }
+    }
+
+    if (alertsSent > 0) {
+      console.log(`🔍 Sent trade deal alerts to ${alertsSent} user(s)`);
+    }
+  } catch (error) {
+    console.error("❌ Trade scan error:", error.message);
+  }
+}
+
 // --- Guild join/leave events (notify bot owner) ---
 const { BOT_OWNER_ID } = require("./utils/permissions");
 
@@ -229,6 +293,7 @@ client.on("interactionCreate", async (interaction) => {
         else if (pfSub === "add") await portfolioCmd.executeAdd(interaction, items);
         else if (pfSub === "remove") await portfolioCmd.executeRemove(interaction);
         else if (pfSub === "clear") await portfolioCmd.executeClear(interaction);
+        else if (pfSub === "watch") await portfolioCmd.executeWatch(interaction);
         break;
       case "health":
         await healthCmd.execute(interaction, items);

@@ -135,6 +135,10 @@ const commands = [
     )
     .addSubcommand((sub) =>
       sub.setName("clear").setDescription("Clear your entire portfolio")
+    )
+    .addSubcommand((sub) =>
+      sub.setName("watch").setDescription("Toggle trade deal alerts for your portfolio")
+        .addStringOption((o) => o.setName("toggle").setDescription("On or Off").setRequired(true).addChoices({ name: "🔔 On", value: "on" }, { name: "🔕 Off", value: "off" }))
     ),
   new SlashCommandBuilder()
     .setName("health")

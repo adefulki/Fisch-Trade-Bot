@@ -31,6 +31,7 @@ async function execute(interaction) {
       `**💼 PORTFOLIO & ALERTS**`,
       `\`/portfolio view\` — Holdings + ROI`,
       `\`/portfolio add\` — Track an item`,
+      `\`/portfolio watch\` — Toggle trade deal DM alerts`,
       `\`/watch add\` — Price alert (DM when target hit)`,
       `\`/watch list\` — View your alerts`,
       ``,

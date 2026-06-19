@@ -27,7 +27,7 @@ That's it — all commands work immediately after inviting.
 | `/unsubscribe` | Stop value change alerts |
 | `/forecast` | Price trend prediction for an item |
 | `/watch` | Price alerts (add/remove/list) |
-| `/portfolio` | Track your holdings with ROI |
+| `/portfolio` | Track holdings + ROI + trade deal alerts |
 | `/health` | Market health index (bullish/bearish) |
 | `/compare` | Compare 2-5 items side by side |
 | `/top` | Top 100 items (sortable, paginated) |
@@ -162,7 +162,7 @@ High demand items sell fast and trade above listed price. Low demand items are h
 - Use `/history` to check trends and price charts before accepting
 - Use `/forecast` to see where prices are heading
 - Use `/watch` to get DM'd when an item hits your target price
-- Use `/portfolio` to track your investments and see ROI
+- Use `/portfolio` to track investments, ROI, and get trade deal DM alerts
 - Use `/health` to check if the market is bullish or bearish
 - Bot suggests specific items to add when a trade is unfair
 - If you see `⚡ Analyzed locally` — AI is on cooldown, results still accurate
@@ -242,7 +242,7 @@ npm start         # Start the bot
     │   ├── chart.js          # /chart (QuickChart image)
     │   ├── forecast.js       # /forecast (trend prediction)
     │   ├── watch.js          # /watch (price alerts)
-    │   ├── portfolio.js      # /portfolio (holdings + ROI)
+    │   ├── portfolio.js      # /portfolio (holdings + ROI + watch)
     │   ├── health.js         # /health (market index)
     │   ├── compare.js       # /compare (side-by-side)
     │   ├── top.js           # /top (sortable leaderboard)
@@ -259,7 +259,8 @@ npm start         # Start the bot
     │   ├── scraper.js        # game.guide scraper + diff detection
     │   ├── chart.js          # QuickChart.io URL generation
     │   ├── forecast.js       # Linear regression price prediction
-    │   └── market-health.js  # Market sentiment calculation
+    │   ├── market-health.js  # Market sentiment calculation
+    │   └── trade-scanner.js  # Trade hub listing scraper
     ├── data/
     │   ├── history.js        # Historical data storage + analytics
     │   ├── watchlist.js      # Price alert management

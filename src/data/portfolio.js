@@ -163,4 +163,40 @@ function clearPortfolio(userId) {
   savePortfolios(portfolios);
 }
 
-module.exports = { addToPortfolio, removeFromPortfolio, getPortfolio, clearPortfolio };
+/**
+ * Toggle trade deal watching for a user's portfolio.
+ * @param {string} userId - Discord user ID
+ * @param {boolean} enabled - Whether to enable watching
+ */
+function setPortfolioWatch(userId, enabled) {
+  const portfolios = loadPortfolios();
+  if (!portfolios[userId]) portfolios[userId] = [];
+  // Store watch state in a special metadata entry
+  if (!portfolios[`${userId}_meta`]) portfolios[`${userId}_meta`] = {};
+  portfolios[`${userId}_meta`].watchEnabled = enabled;
+  savePortfolios(portfolios);
+}
+
+/**
+ * Check if a user has portfolio watching enabled.
+ * @param {string} userId - Discord user ID
+ * @returns {boolean}
+ */
+function isPortfolioWatchEnabled(userId) {
+  const portfolios = loadPortfolios();
+  const meta = portfolios[`${userId}_meta`];
+  return meta ? meta.watchEnabled === true : false;
+}
+
+/**
+ * Get all user IDs with portfolio watch enabled.
+ * @returns {string[]} Array of user IDs
+ */
+function getWatchingUsers() {
+  const portfolios = loadPortfolios();
+  return Object.keys(portfolios)
+    .filter((key) => key.endsWith("_meta") && portfolios[key].watchEnabled)
+    .map((key) => key.replace("_meta", ""));
+}
+
+module.exports = { addToPortfolio, removeFromPortfolio, getPortfolio, clearPortfolio, setPortfolioWatch, isPortfolioWatchEnabled, getWatchingUsers };
