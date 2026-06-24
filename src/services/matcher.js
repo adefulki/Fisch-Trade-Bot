@@ -265,3 +265,32 @@ function parseItemInput(input) {
 }
 
 module.exports = { findItem, parseItemInput, setItems };
+
+// --- Async version with live lookup fallback ---
+const { fetchItemLive } = require("./live-lookup");
+
+/**
+ * Find an item with live fallback. If not in database, tries fetching from game.guide.
+ * @param {string} query - User's input string
+ * @returns {Promise<object|null>} The matched item object, or null if not found
+ */
+async function findItemWithFallback(query) {
+  // Try local database first
+  const local = findItem(query);
+  if (local) return local;
+
+  // Try live lookup from game.guide
+  const q = query.trim();
+  if (q.length < 2) return null;
+
+  console.log(`🔍 Live lookup: "${q}" not in database, fetching from game.guide...`);
+  const live = await fetchItemLive(q);
+  if (live) {
+    console.log(`✅ Live lookup found: ${live.name} (Demand: ${live.demand}, Trend: ${live.trend})`);
+    // Add to items array so it's available for the rest of this session
+    items.push(live);
+  }
+  return live;
+}
+
+module.exports.findItemWithFallback = findItemWithFallback;

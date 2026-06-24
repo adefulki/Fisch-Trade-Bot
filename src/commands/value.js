@@ -4,7 +4,7 @@
  */
 
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType } = require("discord.js");
-const { findItem } = require("../services/matcher");
+const { findItem, findItemWithFallback } = require("../services/matcher");
 const { getAdjustedValue } = require("../services/analyzer");
 const { getItemHistory, formatVal: histFormatVal } = require("../data/history");
 const { formatVal, trendEmoji } = require("../utils/format");
@@ -17,14 +17,18 @@ const { buildValueChartUrl } = require("../services/chart");
  */
 async function execute(interaction) {
   const query = interaction.options.getString("item");
-  const item = findItem(query);
 
+  // Try local first, then live fallback
+  let item = findItem(query);
   if (!item) {
-    await interaction.reply({
-      content: `⚠️ Item "${query}" not found. Check spelling and try again.`,
-      ephemeral: true,
-    });
-    return;
+    await interaction.deferReply();
+    item = await findItemWithFallback(query);
+    if (!item) {
+      await interaction.editReply({
+        content: `⚠️ Item "${query}" not found in database or game.guide.`,
+      });
+      return;
+    }
   }
 
   const val = getAdjustedValue(item);
@@ -54,7 +58,11 @@ async function execute(interaction) {
       .setStyle(ButtonStyle.Secondary),
   );
 
-  const msg = await interaction.reply({ embeds: [embed], components: [row], fetchReply: true });
+  const replyFn = interaction.deferred
+    ? (opts) => interaction.editReply(opts)
+    : (opts) => interaction.reply(opts);
+
+  const msg = await replyFn({ embeds: [embed], components: [row], fetchReply: true });
 
   // Listen for button click (2 minutes)
   const collector = msg.createMessageComponentCollector({

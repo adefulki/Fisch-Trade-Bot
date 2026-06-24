@@ -165,7 +165,7 @@ async function scrapeValues() {
     const fullCardCount = items.length;
     console.log(`📦 Parsed ${fullCardCount} full cards`);
 
-    // Method 2: List items (name + single value in <li> tags)
+    // Method 2: List items (name + value in <li> tags)
     $("li").each((_, el) => {
       const link = $(el).find('a[href*="-value-fisch"]');
       if (!link.length) return;
@@ -179,14 +179,13 @@ async function scrapeValues() {
       const span = $(el).find("span");
       const valueText = span.text().trim();
       const value = parseInt(valueText) || 0;
-      if (value === 0) return;
 
       // Determine if value is TrueVal or Proto based on magnitude
       let trueVal = null;
       let proto = null;
       if (value >= 5000) {
         trueVal = value;
-      } else {
+      } else if (value > 0) {
         proto = value;
       }
 
@@ -195,6 +194,29 @@ async function scrapeValues() {
         trueVal,
         tradeHub: null,
         proto,
+        demand: "-",
+        trend: "-",
+      });
+    });
+
+    // Method 3: All remaining links (captures items with N/A values too)
+    $('a[href*="-value-fisch"]').each((_, el) => {
+      const href = $(el).attr("href") || "";
+      if (!href.includes("-value-fisch")) return;
+
+      const name = $(el).text().trim();
+      if (!name || name.length < 2 || name.includes("TrueVal:") || name.includes("Demand:")) return;
+      // Skip navigation/UI links
+      if (name.includes("Value List") || name.includes("Back to")) return;
+
+      // Skip if already exists
+      if (items.find((i) => i.name.toLowerCase() === name.toLowerCase())) return;
+
+      items.push({
+        name,
+        trueVal: null,
+        tradeHub: null,
+        proto: null,
         demand: "-",
         trend: "-",
       });
@@ -218,9 +240,9 @@ async function scrapeValues() {
 
     const changes = oldItems.length > 0 ? detectChanges(oldItems, items) : null;
 
-    // Safety check: if too many items "removed", it's a bad scrape
-    if (changes && changes.removed.length > 100) {
-      console.error(`⚠️ Detected ${changes.removed.length} removed items — likely a partial scrape. Ignoring removals.`);
+    // Safety check: never report removals — game.guide HTML is inconsistent between loads
+    if (changes && changes.removed.length > 0) {
+      console.log(`⏭️ Ignoring ${changes.removed.length} "removed" items (scrape variance, not real removals)`);
       changes.removed = [];
     }
 
