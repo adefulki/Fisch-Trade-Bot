@@ -64,6 +64,7 @@ function getVerdict(leftTotal, rightTotal) {
 
 /**
  * Find items from the database that could fill a specific value gap.
+ * Shuffles candidates for variety — won't suggest the same items every time.
  * @param {number} neededValue - The value gap to fill
  * @param {Array} allItems - Full item database
  * @returns {Array} Suggested items with name and value
@@ -72,25 +73,32 @@ function suggestAdds(neededValue, allItems) {
   const candidates = allItems
     .filter((i) => {
       const val = getAdjustedValue(i);
-      return val.adjusted > 0 && val.adjusted <= neededValue * 1.2;
+      return val.adjusted > 0 && val.adjusted <= neededValue * 1.5 && i.demand !== "-" && i.demand !== "Very Low";
     })
-    .map((i) => ({ name: i.name, value: getAdjustedValue(i).adjusted, demand: i.demand, trend: i.trend }))
-    .sort((a, b) => b.value - a.value);
+    .map((i) => ({ name: i.name, value: getAdjustedValue(i).adjusted, demand: i.demand, trend: i.trend }));
 
   if (candidates.length === 0) return [];
 
-  // Try single item match first
-  const singleMatch = candidates.find(
+  // Shuffle for variety
+  for (let i = candidates.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+  }
+
+  // Try single item matches (within 85-115% of needed)
+  const singleMatches = candidates.filter(
     (c) => c.value >= neededValue * 0.85 && c.value <= neededValue * 1.15
   );
-  if (singleMatch) return [singleMatch];
+  if (singleMatches.length > 0) {
+    return [singleMatches[Math.floor(Math.random() * Math.min(singleMatches.length, 5))]];
+  }
 
-  // Greedy multi-item selection
+  // Greedy multi-item (from shuffled list)
   const suggestions = [];
   let remaining = neededValue;
   for (const candidate of candidates) {
     if (remaining <= 0) break;
-    if (candidate.value <= remaining * 1.1) {
+    if (candidate.value <= remaining * 1.2 && candidate.value >= remaining * 0.15) {
       suggestions.push(candidate);
       remaining -= candidate.value;
     }
@@ -123,27 +131,37 @@ function getRecommendation(verdict, leftTotal, rightTotal, leftItems, rightItems
   if (rising.length > 0) trendNote += ` 📈 ${rising.join(", ")} is rising in value.`;
   if (dropping.length > 0) trendNote += ` 📉 ${dropping.join(", ")} is dropping — sell sooner.`;
 
-  // Item suggestions
+  // Item suggestions — two options: for FAIR and for WIN
   let itemSuggestions = "";
   if (allItemsDB && (verdict === "LOSS" || verdict === "BIG LOSS" || verdict === "FAIR")) {
     const tradeItemNames = allTradeItems.map((i) => i.data.name.toLowerCase());
-    const targetAdd = verdict === "FAIR"
-      ? Math.round((leftTotal + rightTotal) / 2 * 0.2)
-      : diff;
-
     const availableItems = allItemsDB.filter(
       (i) => !tradeItemNames.includes(i.name.toLowerCase())
     );
-    const suggestions = suggestAdds(targetAdd, availableItems);
 
-    if (suggestions.length > 0) {
-      const sugList = suggestions
-        .map((s) => `**${s.name}** (${formatVal(s.value)})`)
-        .join(", ");
-      if (verdict === "FAIR") {
+    if (verdict === "FAIR") {
+      // For FAIR: suggest what they could add to make it a WIN for you
+      const winTarget = Math.round((leftTotal + rightTotal) / 2 * 0.2);
+      const winSuggestions = suggestAdds(winTarget, availableItems);
+      if (winSuggestions.length > 0) {
+        const sugList = winSuggestions.map((s) => `**${s.name}** (${formatVal(s.value)})`).join(", ");
         itemSuggestions = `\n💡 **To make it a WIN:** Ask them to add ${sugList}.`;
-      } else {
-        itemSuggestions = `\n💡 **Ask them to add:** ${sugList} (≈ ${formatVal(targetAdd)} needed).`;
+      }
+    } else {
+      // For LOSS/BIG LOSS: two options
+      const fairTarget = diff;
+      const winTarget = diff + Math.round(leftTotal * 0.15);
+
+      const fairSuggestions = suggestAdds(fairTarget, availableItems);
+      const winSuggestions = suggestAdds(winTarget, availableItems);
+
+      if (fairSuggestions.length > 0) {
+        const fairList = fairSuggestions.map((s) => `**${s.name}** (${formatVal(s.value)})`).join(", ");
+        itemSuggestions += `\n🟡 **For FAIR trade:** Ask them to add ${fairList}`;
+      }
+      if (winSuggestions.length > 0) {
+        const winList = winSuggestions.map((s) => `**${s.name}** (${formatVal(s.value)})`).join(", ");
+        itemSuggestions += `\n🟢 **For a WIN:** Ask them to add ${winList}`;
       }
     }
   }

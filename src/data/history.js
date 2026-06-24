@@ -74,6 +74,9 @@ function recordChanges(changes) {
   const cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
   history.snapshots = history.snapshots.filter((s) => s.timestamp >= cutoff);
 
+  // Purge bad snapshots (likely from partial scrapes)
+  history.snapshots = history.snapshots.filter((s) => !s.removed || s.removed.length <= 100);
+
   saveHistory(history);
   console.log(`📜 Recorded history snapshot (${totalChanges} changes, ${history.snapshots.length} total entries)`);
 }

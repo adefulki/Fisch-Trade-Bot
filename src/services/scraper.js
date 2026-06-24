@@ -1,6 +1,6 @@
 /**
  * Web scraper for game.guide Fisch value list.
- * Fetches, parses, detects changes, and formats notifications.
+ * Fetches, parses (cards + list items), detects changes.
  */
 
 const axios = require("axios");
@@ -93,8 +93,29 @@ function detectChanges(oldItems, newItems) {
 }
 
 /**
+ * Extract item name from doubled text (e.g. "Evangeline Evangeline" → "Evangeline").
+ * @param {string} rawName - Raw name text (possibly doubled)
+ * @returns {string} Clean item name
+ */
+function cleanItemName(rawName) {
+  let itemName = rawName;
+  if (rawName.length > 2) {
+    for (let i = 1; i <= Math.floor(rawName.length / 2) + 1; i++) {
+      const candidate = rawName.substring(0, i).trim();
+      const rest = rawName.substring(i).trim();
+      if (candidate === rest) { itemName = candidate; break; }
+    }
+  }
+  itemName = itemName.replace(/^NEW\s*/i, "").trim();
+  itemName = itemName.replace(/^\?\s*/, "").trim();
+  return itemName;
+}
+
+/**
  * Scrape the Fisch value list from game.guide.
- * Compares against saved data to detect changes.
+ * Uses two parsing methods:
+ *   1. Full cards (class cos-unit-card) — has all data
+ *   2. List items (<li> with link + span) — has name + value only
  * @returns {{success: boolean, changes: object|null}} Success status and detected changes
  */
 async function scrapeValues() {
@@ -109,9 +130,10 @@ async function scrapeValues() {
     const $ = cheerio.load(html);
     const items = [];
 
-    $("a[href*='-value-fisch']").each((_, el) => {
+    // Method 1: Full cards with all data (TrueVal, Trade Hub, Proto, Demand, Trend)
+    $('a[href*="-value-fisch"]').each((_, el) => {
       const text = $(el).text().trim();
-      if (!text) return;
+      if (!text || !text.includes("Demand:")) return;
 
       const trueValMatch = text.match(/TrueVal:\s*(S\$\s*[\d.]+[MK]?|N\/A)/i);
       const tradeHubMatch = text.match(/Trade Hub:\s*(S\$\s*[\d.]+[MK]?|N\/A)/i);
@@ -124,18 +146,7 @@ async function scrapeValues() {
       const nameMatch = text.match(/^(.+?)\s*TrueVal:/);
       if (!nameMatch) return;
 
-      let rawName = nameMatch[1].trim();
-      let itemName = rawName;
-      if (rawName.length > 2) {
-        for (let i = 1; i <= Math.floor(rawName.length / 2) + 1; i++) {
-          const candidate = rawName.substring(0, i).trim();
-          const rest = rawName.substring(i).trim();
-          if (candidate === rest) { itemName = candidate; break; }
-        }
-      }
-
-      itemName = itemName.replace(/^NEW\s*/i, "").trim();
-      itemName = itemName.replace(/^\?\s*/, "").trim();
+      const itemName = cleanItemName(nameMatch[1].trim());
       if (!itemName || itemName.length < 2) return;
 
       const item = {
@@ -151,8 +162,48 @@ async function scrapeValues() {
       if (!exists) items.push(item);
     });
 
-    if (items.length < 10) {
-      console.error(`⚠️ Only scraped ${items.length} items — keeping old data.`);
+    const fullCardCount = items.length;
+    console.log(`📦 Parsed ${fullCardCount} full cards`);
+
+    // Method 2: List items (name + single value in <li> tags)
+    $("li").each((_, el) => {
+      const link = $(el).find('a[href*="-value-fisch"]');
+      if (!link.length) return;
+
+      const name = link.text().trim();
+      if (!name || name.length < 2) return;
+
+      // Skip if already parsed from full cards
+      if (items.find((i) => i.name.toLowerCase() === name.toLowerCase())) return;
+
+      const span = $(el).find("span");
+      const valueText = span.text().trim();
+      const value = parseInt(valueText) || 0;
+      if (value === 0) return;
+
+      // Determine if value is TrueVal or Proto based on magnitude
+      let trueVal = null;
+      let proto = null;
+      if (value >= 5000) {
+        trueVal = value;
+      } else {
+        proto = value;
+      }
+
+      items.push({
+        name,
+        trueVal,
+        tradeHub: null,
+        proto,
+        demand: "-",
+        trend: "-",
+      });
+    });
+
+    console.log(`📦 Total items: ${items.length} (${fullCardCount} full + ${items.length - fullCardCount} list)`);
+
+    if (items.length < 500) {
+      console.error(`⚠️ Only scraped ${items.length} items (expected 1000+) — partial load, keeping old data.`);
       return { success: false, changes: null };
     }
 
@@ -166,6 +217,12 @@ async function scrapeValues() {
     } catch (e) { /* No old data */ }
 
     const changes = oldItems.length > 0 ? detectChanges(oldItems, items) : null;
+
+    // Safety check: if too many items "removed", it's a bad scrape
+    if (changes && changes.removed.length > 100) {
+      console.error(`⚠️ Detected ${changes.removed.length} removed items — likely a partial scrape. Ignoring removals.`);
+      changes.removed = [];
+    }
 
     // Save new data
     const dir = path.dirname(DATA_FILE);
@@ -181,7 +238,7 @@ async function scrapeValues() {
     console.log(`✅ Synced ${items.length} items from game.guide (${new Date().toLocaleString()})`);
     if (changes) {
       const total = changes.updated.length + changes.added.length + changes.removed.length;
-      console.log(`📊 Changes detected: ${changes.updated.length} updated, ${changes.added.length} added, ${changes.removed.length} removed`);
+      if (total > 0) console.log(`📊 Changes: ${changes.updated.length} updated, ${changes.added.length} added, ${changes.removed.length} removed`);
     }
 
     return { success: true, changes };
