@@ -9,6 +9,7 @@ const { findItem } = require("../services/matcher");
 const { getAdjustedValue } = require("../services/analyzer");
 const { forecastItem } = require("../services/forecast");
 const { formatVal, trendEmoji } = require("../utils/format");
+const { analyzeStability } = require("../services/stability");
 
 /**
  * Score an item for investment quality (0-100).
@@ -140,8 +141,9 @@ async function execute(interaction) {
       const item = d.item;
       const val = getAdjustedValue(item);
       const forecast = forecastItem(item, 14, 7);
+      const stability = analyzeStability(item);
       const { score, reasons } = scoreItem(item, forecast);
-      return { item, val, forecast, score, reasons, grade: getGrade(score) };
+      return { item, val, forecast, stability, score, reasons, grade: getGrade(score) };
     });
 
   // Sort by score (best first)
@@ -182,12 +184,20 @@ async function execute(interaction) {
       : { label: "", emoji: "" };
     const effStr = efficiency.label ? ` | ${efficiency.emoji} ${efficiency.label}` : "";
 
+    // Stability warning
+    let stabilityStr = "";
+    if (c.stability.confidence === "Likely Manipulated") {
+      stabilityStr = "\n> 🚨 **Likely Manipulated** — use caution";
+    } else if (c.stability.confidence === "Suspicious") {
+      stabilityStr = "\n> ⚠️ **Suspicious activity** detected";
+    }
+
     return [
       `${rank} **${c.item.name}** — ${c.grade} (${c.score}/100)`,
       `> 💰 Adjusted: **${formatVal(c.val.adjusted)}**${valueDiffStr}`,
       `> TrueVal: ${formatVal(c.item.trueVal)} | Trade Hub: ${formatVal(c.item.tradeHub)} | Proto: ${c.item.proto || "N/A"}`,
       `> Demand: ${c.item.demand} | Trend: ${trendEmoji(c.item.trend)} ${c.item.trend} | Forecast: ${forecastStr}`,
-      `> ${c.reasons.length > 0 ? c.reasons.join(", ") : "Neutral"}${effStr}`,
+      `> ${c.reasons.length > 0 ? c.reasons.join(", ") : "Neutral"}${effStr}${stabilityStr}`,
     ].join("\n");
   });
 

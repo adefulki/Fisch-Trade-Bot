@@ -8,6 +8,7 @@ const { findItem } = require("../services/matcher");
 const { getItemHistory, formatVal } = require("../data/history");
 const { buildValueChartUrl, buildProtoChartUrl } = require("../services/chart");
 const { trendEmoji } = require("../utils/format");
+const { analyzeStability } = require("../services/stability");
 
 /**
  * Handle the /history slash command interaction.
@@ -112,6 +113,18 @@ async function execute(interaction) {
   ];
   if (statsText) headerLines.push(``);
   if (statsText) headerLines.push(statsText);
+
+  // Stability analysis
+  const stability = analyzeStability(item, days);
+  if (stability.confidence !== "Stable") {
+    const emoji = stability.confidence === "Likely Manipulated" ? "🚨"
+      : stability.confidence === "Suspicious" ? "⚠️" : "ℹ️";
+    headerLines.push("");
+    headerLines.push(`${emoji} **Stability: ${stability.confidence}** (${stability.score}/100)`);
+    for (const warning of stability.warnings.slice(0, 2)) {
+      headerLines.push(`> ${warning}`);
+    }
+  }
 
   // Color based on overall trend
   let color = 0x1e90ff;

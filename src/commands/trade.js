@@ -7,6 +7,7 @@
 const { parseItemInput } = require("../services/matcher");
 const { analyzeTrade } = require("../services/ai");
 const { sendEmbed } = require("../utils/discord");
+const { getStabilityWarning } = require("../services/stability");
 
 /**
  * Handle the /trade slash command interaction.
@@ -37,6 +38,20 @@ async function execute(interaction, items) {
   const { response, usedAI } = await analyzeTrade(leftItems, rightItems, items);
   const footer = usedAI ? "Powered by AI" : "⚡ Analyzed locally (AI quota reached)";
 
+  // Check for manipulation warnings on traded items
+  const allTradeItems = [...leftItems, ...rightItems].filter((i) => i.data);
+  const stabilityWarnings = allTradeItems
+    .map((i) => {
+      const warning = getStabilityWarning(i.data);
+      return warning ? `**${i.data.name}:** ${warning}` : "";
+    })
+    .filter(Boolean);
+
+  let stabilitySection = "";
+  if (stabilityWarnings.length > 0) {
+    stabilitySection = "\n\n━━━━━━━━━━━━━━━━━━━━━━━━\n🛡️ **STABILITY WARNINGS:**\n" + stabilityWarnings.join("\n");
+  }
+
   // Determine color based on verdict
   let color = 0x808080; // grey default
   if (response.includes("BIG WIN")) color = 0x00ff00;
@@ -45,9 +60,12 @@ async function execute(interaction, items) {
   else if (response.includes("BIG LOSS")) color = 0xff0000;
   else if (response.includes("LOSS")) color = 0xff6347;
 
+  // Override color if manipulation detected
+  if (stabilityWarnings.some((w) => w.includes("Likely Manipulated"))) color = 0xff0000;
+
   await sendEmbed(interaction, {
     title: "⚖️ FISCH TRADE ASSISTANT",
-    description: response.replace("⚖️ **FISCH TRADE ASSISTANT**\n\n", ""), // Remove duplicate title
+    description: response.replace("⚖️ **FISCH TRADE ASSISTANT**\n\n", "") + stabilitySection,
     color,
     footer,
   });

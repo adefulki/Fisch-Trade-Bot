@@ -9,6 +9,7 @@ const { getAdjustedValue } = require("../services/analyzer");
 const { getItemHistory, formatVal: histFormatVal } = require("../data/history");
 const { formatVal, trendEmoji } = require("../utils/format");
 const { buildValueChartUrl } = require("../services/chart");
+const { getStabilityBlock, getStabilityColor } = require("../services/stability");
 
 /**
  * Handle the /value slash command interaction.
@@ -33,9 +34,13 @@ async function execute(interaction) {
 
   const val = getAdjustedValue(item);
 
-  // Color based on demand
+  // Color based on demand (overridden if manipulation detected)
   const colors = { "Very High": 0x00ff88, "High": 0x00ff00, "Limited": 0xffd700, "Medium": 0x1e90ff, "Low": 0xff8c00, "Very Low": 0xff4500 };
-  const color = colors[item.demand] || 0x808080;
+  const baseColor = colors[item.demand] || 0x808080;
+  const color = getStabilityColor(item, baseColor);
+
+  // Stability analysis
+  const stabilityBlock = getStabilityBlock(item);
 
   const embed = new EmbedBuilder()
     .setTitle(`🔍 ${item.name}`)
@@ -49,6 +54,10 @@ async function execute(interaction) {
       { name: "💰 Adjusted Value", value: `${formatVal(val.adjusted)} *(${val.source} × demand × trend)*`, inline: false },
     )
     .setFooter({ text: "Source: game.guide/fisch-value-list" });
+
+  if (stabilityBlock) {
+    embed.addFields({ name: "🛡️ Stability", value: stabilityBlock, inline: false });
+  }
 
   // Add "View History" button
   const row = new ActionRowBuilder().addComponents(
