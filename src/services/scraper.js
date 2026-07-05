@@ -176,9 +176,15 @@ async function scrapeValues() {
       // Skip if already parsed from full cards
       if (items.find((i) => i.name.toLowerCase() === name.toLowerCase())) return;
 
+      // Try to extract value from span or any sibling text
       const span = $(el).find("span");
       const valueText = span.text().trim();
-      const value = parseInt(valueText) || 0;
+      const value = parseInt(valueText.replace(/,/g, "")) || 0;
+
+      // Try to extract demand/trend from list item context
+      const liText = $(el).text().trim();
+      const demandMatch = liText.match(/Demand:\s*(Very Low|Very High|Low|Medium|High|Limited|-)/i);
+      const trendMatch = liText.match(/Trend:\s*(Rising|Stable|Dropping|Unstable|-)/i);
 
       // Determine if value is TrueVal or Proto based on magnitude
       let trueVal = null;
@@ -189,17 +195,26 @@ async function scrapeValues() {
         proto = value;
       }
 
+      const demand = demandMatch ? demandMatch[1] : "-";
+      const trend = trendMatch ? trendMatch[1] : "-";
+
+      // Only add if we have at least some useful info
+      const hasValue = trueVal !== null || proto !== null;
+      const hasMetadata = demand !== "-" || trend !== "-";
+      if (!hasValue && !hasMetadata) return;
+
       items.push({
         name,
         trueVal,
         tradeHub: null,
         proto,
-        demand: "-",
-        trend: "-",
+        demand,
+        trend,
       });
     });
 
-    // Method 3: All remaining links (captures items with N/A values too)
+    // Method 3: All remaining links — only add if we can extract at least SOME data
+    // Previously this added all links with all-null values, causing massive N/A entries
     $('a[href*="-value-fisch"]').each((_, el) => {
       const href = $(el).attr("href") || "";
       if (!href.includes("-value-fisch")) return;
@@ -208,24 +223,62 @@ async function scrapeValues() {
       if (!name || name.length < 2 || name.includes("TrueVal:") || name.includes("Demand:")) return;
       // Skip navigation/UI links
       if (name.includes("Value List") || name.includes("Back to")) return;
+      // Skip generic/long text that's clearly not an item name
+      if (name.length > 50 || name.split(" ").length > 6) return;
 
       // Skip if already exists
       if (items.find((i) => i.name.toLowerCase() === name.toLowerCase())) return;
 
+      // Try to extract any surrounding context (parent element text)
+      const parentText = $(el).parent().text().trim();
+      const demandMatch = parentText.match(/Demand:\s*(Very Low|Very High|Low|Medium|High|Limited|-)/i);
+      const trendMatch = parentText.match(/Trend:\s*(Rising|Stable|Dropping|Unstable|-)/i);
+      const trueValMatch = parentText.match(/TrueVal:\s*(S\$\s*[\d.]+[MK]?)/i);
+      const tradeHubMatch = parentText.match(/Trade Hub:\s*(S\$\s*[\d.]+[MK]?)/i);
+      const protoMatch = parentText.match(/Proto:\s*([\d.]+\s*K?)/i);
+
+      const trueVal = trueValMatch ? parseValue(trueValMatch[1]) : null;
+      const tradeHub = tradeHubMatch ? parseValue(tradeHubMatch[1]) : null;
+      const proto = protoMatch ? parseProto(protoMatch[1]) : null;
+      const demand = demandMatch ? demandMatch[1] : "-";
+      const trend = trendMatch ? trendMatch[1] : "-";
+
+      // Only add if we have at least ONE piece of useful data
+      const hasValue = trueVal !== null || tradeHub !== null || proto !== null;
+      const hasMetadata = demand !== "-" || trend !== "-";
+      if (!hasValue && !hasMetadata) return;
+
       items.push({
         name,
-        trueVal: null,
-        tradeHub: null,
-        proto: null,
-        demand: "-",
-        trend: "-",
+        trueVal,
+        tradeHub,
+        proto,
+        demand,
+        trend,
       });
     });
 
+    // Post-scrape filter: remove items with ALL null values and no metadata
+    const beforeFilter = items.length;
+    const filteredItems = items.filter((item) => {
+      const hasValue = item.trueVal !== null || item.tradeHub !== null || item.proto !== null;
+      const hasMetadata = item.demand !== "-" || item.trend !== "-";
+      return hasValue || hasMetadata;
+    });
+
+    // Replace items array content with filtered results
+    items.length = 0;
+    items.push(...filteredItems);
+
+    const removedCount = beforeFilter - items.length;
+    if (removedCount > 0) {
+      console.log(`🧹 Filtered out ${removedCount} items with no data (all N/A)`);
+    }
+
     console.log(`📦 Total items: ${items.length} (${fullCardCount} full + ${items.length - fullCardCount} list)`);
 
-    if (items.length < 500) {
-      console.error(`⚠️ Only scraped ${items.length} items (expected 1000+) — partial load, keeping old data.`);
+    if (items.length < 100) {
+      console.error(`⚠️ Only scraped ${items.length} items (expected 500+) — partial load, keeping old data.`);
       return { success: false, changes: null };
     }
 
