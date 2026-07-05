@@ -28,19 +28,25 @@ async function execute(interaction, context) {
 
   await interaction.deferReply({ ephemeral: true });
 
-  const { success, changes } = await scrapeValues();
-  if (success) {
-    const newItems = loadItems();
-    setItems(newItems);
-    setAutocompleteItems(newItems);
-    context.setItems(newItems);
-    recordChanges(changes);
-    await postChangeNotification(context.client, changes);
+  try {
+    const { success, changes } = await scrapeValues();
+    if (success) {
+      const newItems = loadItems();
+      setItems(newItems);
+      setAutocompleteItems(newItems);
+      context.setItems(newItems);
+      recordChanges(changes);
+      await postChangeNotification(context.client, changes);
 
-    const totalChanges = changes ? (changes.updated.length + changes.added.length + changes.removed.length) : 0;
-    await interaction.editReply(`✅ Values synced! Loaded ${newItems.length} items. ${totalChanges > 0 ? `(${totalChanges} changes detected)` : "(no changes)"}`);
-  } else {
-    await interaction.editReply("❌ Sync failed. Check bot logs for details.");
+      const totalChanges = changes ? (changes.updated.length + changes.added.length + changes.removed.length) : 0;
+      await interaction.editReply(`✅ Values synced! Loaded ${newItems.length} items. ${totalChanges > 0 ? `(${totalChanges} changes detected)` : "(no changes)"}`);
+    } else {
+      await interaction.editReply("❌ Sync failed. Check bot logs for details.");
+    }
+  } catch (error) {
+    console.error("❌ /sync error:", error.message);
+    // Try to respond — if interaction expired, it'll silently fail
+    await interaction.editReply(`❌ Sync error: ${error.message}`).catch(() => {});
   }
 }
 

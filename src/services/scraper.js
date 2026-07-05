@@ -126,23 +126,24 @@ async function autoScroll(page) {
   await page.evaluate(async () => {
     await new Promise((resolve) => {
       let totalHeight = 0;
-      const distance = 500;
+      const distance = 800;
       const timer = setInterval(() => {
         window.scrollBy(0, distance);
         totalHeight += distance;
-        if (totalHeight >= document.body.scrollHeight || totalHeight > 50000) {
+        if (totalHeight >= document.body.scrollHeight || totalHeight > 30000) {
           clearInterval(timer);
           resolve();
         }
-      }, 100);
+      }, 80);
     });
   });
-  await new Promise((r) => setTimeout(r, 2000));
+  await new Promise((r) => setTimeout(r, 1500));
 }
 
 /**
  * Fetch the page HTML using Puppeteer (handles JS-rendered pages).
- * Falls back to axios if Puppeteer is not installed.
+ * Falls back to axios if Puppeteer is not installed or fails.
+ * Total timeout: 90 seconds max for Puppeteer.
  * @returns {string} Page HTML
  */
 async function fetchPageHtml() {
@@ -152,7 +153,8 @@ async function fetchPageHtml() {
     try {
       const launchOptions = {
         headless: "new",
-        args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu"],
+        args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu", "--single-process"],
+        timeout: 30000,
       };
       if (process.env.CHROME_PATH) {
         launchOptions.executablePath = process.env.CHROME_PATH;
@@ -161,12 +163,12 @@ async function fetchPageHtml() {
       browser = await puppeteer.launch(launchOptions);
       const page = await browser.newPage();
       await page.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36");
-      await page.goto(SOURCE_URL, { waitUntil: "networkidle2", timeout: 60000 });
+      await page.goto(SOURCE_URL, { waitUntil: "networkidle0", timeout: 45000 });
 
       // Wait for card content to appear
       await page.waitForFunction(
         () => document.body.innerText.includes("TrueVal") || document.querySelectorAll('[class*="card"]').length > 10,
-        { timeout: 30000 }
+        { timeout: 15000 }
       ).catch(() => console.log("⏱️ Timed out waiting for cards, using current content..."));
 
       // Scroll to load all lazy content
