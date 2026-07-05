@@ -251,8 +251,27 @@ async function scrapeValues() {
       const trueValMatch = cardText.match(/TrueVal:?\s*(S\$\s*[\d,.]+[MK]?|N\/A)/i);
       const tradeHubMatch = cardText.match(/Trade\s*Hub:?\s*(S\$\s*[\d,.]+[MK]?|N\/A)/i);
       const protoMatch = cardText.match(/Proto:?\s*([\d,.]+\s*K?|N\/A|TBD)/i);
-      const demandMatch = cardText.match(/(Very Low|Very High|Low|Medium|High|Limited)/i);
-      const trendMatch = cardText.match(/\b(Rising|Stable|Dropping|Unstable)\b/i);
+
+      // Demand & Trend: try full card text first, then individual child elements
+      let demandMatch = cardText.match(/(Very Low|Very High|Limited|Low|Medium|High)/i);
+      let trendMatch = cardText.match(/(Rising|Dropping|Unstable|Stable)/i);
+
+      // Fallback: scan child elements for demand/trend text
+      // (handles cases where cheerio concatenates without spaces)
+      if (!demandMatch || !trendMatch) {
+        card.find("*").each((_, child) => {
+          const childText = $(child).text().trim();
+          if (childText.length > 20) return; // skip large containers
+          if (!demandMatch) {
+            const dm = childText.match(/^(Very Low|Very High|Limited|Low|Medium|High)$/i);
+            if (dm) demandMatch = dm;
+          }
+          if (!trendMatch) {
+            const tm = childText.match(/^(Rising|Dropping|Unstable|Stable)$/i);
+            if (tm) trendMatch = tm;
+          }
+        });
+      }
 
       // Extract item name
       let itemName = "";
@@ -354,8 +373,8 @@ async function scrapeValues() {
       const value = parseInt(valueText.replace(/,/g, "")) || 0;
 
       const liText = $(el).text().trim();
-      const demandMatch = liText.match(/(Very Low|Very High|Low|Medium|High|Limited)/i);
-      const trendMatch = liText.match(/\b(Rising|Stable|Dropping|Unstable)\b/i);
+      const demandMatch = liText.match(/(Very Low|Very High|Limited|Low|Medium|High)/i);
+      const trendMatch = liText.match(/(Rising|Dropping|Unstable|Stable)/i);
 
       let trueVal = null;
       let proto = null;
@@ -390,8 +409,8 @@ async function scrapeValues() {
       const trueValMatch = text.match(/TrueVal:?\s*(S\$\s*[\d,.]+[MK]?)/i);
       const tradeHubMatch = text.match(/Trade\s*Hub:?\s*(S\$\s*[\d,.]+[MK]?)/i);
       const protoMatch = text.match(/Proto:?\s*([\d,.]+\s*K?)/i);
-      const demandMatch = text.match(/(Very Low|Very High|Low|Medium|High|Limited)/i);
-      const trendMatch = text.match(/\b(Rising|Stable|Dropping|Unstable)\b/i);
+      const demandMatch = text.match(/(Very Low|Very High|Limited|Low|Medium|High)/i);
+      const trendMatch = text.match(/(Rising|Dropping|Unstable|Stable)/i);
 
       const trueVal = trueValMatch ? parseValue(trueValMatch[1]) : null;
       const tradeHub = tradeHubMatch ? parseValue(tradeHubMatch[1]) : null;
