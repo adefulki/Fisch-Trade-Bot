@@ -61,7 +61,7 @@ function buildChangeEmbeds(changes) {
           if (c.after === "Dropping") hasDown = true;
         }
         if (c.field === "Demand") {
-          const order = ["Very Low", "Low", "Medium", "High", "Limited"];
+          const order = ["Very Low", "Low", "Medium", "High", "Very High", "Limited"];
           if (order.indexOf(c.after) > order.indexOf(c.before)) hasUp = true;
           if (order.indexOf(c.after) < order.indexOf(c.before)) hasDown = true;
         }

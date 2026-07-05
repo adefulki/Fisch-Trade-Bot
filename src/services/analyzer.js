@@ -27,7 +27,7 @@ function getAdjustedValue(item) {
   } else if (item.proto && item.proto > 0) {
     const demandKey = item.demand || "Medium";
     const protoMultiplier =
-      demandKey === "High" || demandKey === "Limited" ? 2500 :
+      demandKey === "Very High" || demandKey === "High" || demandKey === "Limited" ? 2500 :
       demandKey === "Medium" ? 2000 : 1500;
     baseValue = item.proto * protoMultiplier;
     source = "Proto (est.)";

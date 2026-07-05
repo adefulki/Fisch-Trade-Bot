@@ -34,7 +34,7 @@ async function execute(interaction) {
   const val = getAdjustedValue(item);
 
   // Color based on demand
-  const colors = { "High": 0x00ff00, "Limited": 0xffd700, "Medium": 0x1e90ff, "Low": 0xff8c00, "Very Low": 0xff4500 };
+  const colors = { "Very High": 0x00ff88, "High": 0x00ff00, "Limited": 0xffd700, "Medium": 0x1e90ff, "Low": 0xff8c00, "Very Low": 0xff4500 };
   const color = colors[item.demand] || 0x808080;
 
   const embed = new EmbedBuilder()
