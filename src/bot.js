@@ -314,7 +314,7 @@ client.on("interactionCreate", async (interaction) => {
         await liquidityCmd.execute(interaction, items);
         break;
       case "changelog":
-        await changelogCmd.execute(interaction);
+        await changelogCmd.execute(interaction, context);
         break;
       default:
         break;

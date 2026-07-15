@@ -1,10 +1,11 @@
 /**
- * /changelog command — Show the latest changelog.
+ * /changelog command — Broadcast the latest changelog to all subscribed servers.
  * Restricted to bot owner only.
  */
 
 const { EmbedBuilder, MessageFlags } = require("discord.js");
 const { isBotOwner } = require("../utils/permissions");
+const { getSubscribedChannels } = require("../data/subscriptions");
 
 /** Latest changelog content */
 const CHANGELOG = {
@@ -16,7 +17,7 @@ const CHANGELOG = {
       items: [
         "`/roi` — Top items by ROI (value ÷ Robux cost)",
         "`/liquidity` — Items ranked by ease of selling",
-        "`/changelog` — View latest bot changes (admin only)",
+        "`/changelog` — View latest bot changes",
       ],
     },
     {
@@ -65,10 +66,30 @@ const CHANGELOG = {
 };
 
 /**
- * Handle the /changelog slash command interaction.
- * @param {object} interaction - Discord interaction object
+ * Build the changelog embed.
+ * @returns {EmbedBuilder}
  */
-async function execute(interaction) {
+function buildChangelogEmbed() {
+  const description = CHANGELOG.sections.map((section) => {
+    const items = section.items.map((item) => `• ${item}`).join("\n");
+    return `**${section.title}**\n${items}`;
+  }).join("\n\n");
+
+  return new EmbedBuilder()
+    .setTitle(`📋 Changelog — ${CHANGELOG.version}`)
+    .setDescription(description)
+    .setColor(0x5865f2)
+    .setFooter({ text: `Released: ${CHANGELOG.date} • Fisch Trade Assistant` })
+    .setTimestamp();
+}
+
+/**
+ * Handle the /changelog slash command interaction.
+ * Broadcasts changelog to all subscribed channels.
+ * @param {object} interaction - Discord interaction object
+ * @param {object} context - Bot context with client
+ */
+async function execute(interaction, context) {
   if (!isBotOwner(interaction.user.id)) {
     await interaction.reply({
       content: "⚠️ Only the bot owner can use this command.",
@@ -79,19 +100,42 @@ async function execute(interaction) {
 
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-  const description = CHANGELOG.sections.map((section) => {
-    const items = section.items.map((item) => `• ${item}`).join("\n");
-    return `**${section.title}**\n${items}`;
-  }).join("\n\n");
+  const embed = buildChangelogEmbed();
+  const client = context ? context.client : interaction.client;
+  const channels = getSubscribedChannels();
 
-  const embed = new EmbedBuilder()
-    .setTitle(`📋 Changelog — ${CHANGELOG.version}`)
-    .setDescription(description)
-    .setColor(0x5865f2)
-    .setFooter({ text: `Released: ${CHANGELOG.date}` })
-    .setTimestamp();
+  let sent = 0;
+  let failed = 0;
 
-  await interaction.editReply({ embeds: [embed] });
+  for (const channelId of channels) {
+    try {
+      const channel = await client.channels.fetch(channelId);
+      if (channel) {
+        await channel.send({ embeds: [embed] });
+        sent++;
+      } else {
+        failed++;
+      }
+    } catch (e) {
+      failed++;
+    }
+  }
+
+  // Also post in the current channel (public) if not already subscribed
+  const currentChannelId = interaction.channelId;
+  if (!channels.includes(currentChannelId)) {
+    try {
+      const channel = await client.channels.fetch(currentChannelId);
+      if (channel) {
+        await channel.send({ embeds: [embed] });
+        sent++;
+      }
+    } catch (e) { /* ignore */ }
+  }
+
+  await interaction.editReply(
+    `✅ Changelog broadcasted to **${sent}** channel${sent !== 1 ? "s" : ""}${failed > 0 ? ` (${failed} failed)` : ""}.`
+  );
 }
 
 module.exports = { execute };
