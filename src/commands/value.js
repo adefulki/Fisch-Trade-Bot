@@ -32,6 +32,23 @@ async function execute(interaction) {
     }
   }
 
+  // If item is missing market data (stock/cost/soldRate), fetch detail page
+  const needsEnrichment = item.stock === null || item.stock === undefined;
+  if (needsEnrichment) {
+    if (!interaction.deferred && !interaction.replied) await interaction.deferReply();
+    try {
+      const { fetchItemLive } = require("../services/live-lookup");
+      const detail = await fetchItemLive(item.name);
+      if (detail) {
+        if (detail.stock !== null && detail.stock !== undefined) item.stock = detail.stock;
+        if (detail.cost !== null && detail.cost !== undefined) item.cost = detail.cost;
+        if (detail.soldRate !== null && detail.soldRate !== undefined) item.soldRate = detail.soldRate;
+        if (detail.marketValue !== null && detail.marketValue !== undefined) item.marketValue = detail.marketValue;
+        if (detail.tradeCount !== null && detail.tradeCount !== undefined) item.tradeCount = detail.tradeCount;
+      }
+    } catch (e) { /* silently continue without market data */ }
+  }
+
   const val = getAdjustedValue(item);
 
   // Color based on demand (overridden if manipulation detected)
