@@ -167,6 +167,23 @@ const commands = [
           { name: "📉 Dropping items", value: "dropping" },
         )
     ),
+  new SlashCommandBuilder()
+    .setName("roi")
+    .setDescription("Show top items by ROI (Return on Investment)")
+    .addStringOption((option) =>
+      option.setName("sort").setDescription("Sort by (default: roi)").setRequired(false)
+        .addChoices(
+          { name: "📊 ROI Multiplier", value: "roi" },
+          { name: "💰 Current Value", value: "value" },
+          { name: "💎 Robux Cost", value: "cost" },
+        )
+    ),
+  new SlashCommandBuilder()
+    .setName("liquidity")
+    .setDescription("Show items ranked by how easy they are to sell"),
+  new SlashCommandBuilder()
+    .setName("changelog")
+    .setDescription("Show latest bot changelog (admin only)"),
 ].map((cmd) => cmd.toJSON());
 
 const rest = new REST({ version: "10" }).setToken(process.env.DISCORD_TOKEN);

@@ -43,6 +43,28 @@ function getAdjustedValue(item) {
 }
 
 /**
+ * Get the smartest available value for an item considering market data.
+ * Priority: marketValue (if available and tradeCount > 50) > TrueVal > Trade Hub > Proto estimate.
+ * This reflects real community trading prices when sufficient data exists.
+ * @param {object} item - Item object with trueVal, tradeHub, proto, demand, trend, marketValue, tradeCount
+ * @returns {{value: number, source: string, adjusted: number}} Base value, source label, and adjusted value
+ */
+function getSmartValue(item) {
+  if (!item) return { value: 0, source: "Unknown", adjusted: 0 };
+
+  // Prefer marketValue when available with sufficient trade volume
+  if (item.marketValue && item.marketValue > 0 && item.tradeCount && item.tradeCount > 50) {
+    const demandMult = DEMAND_MULTIPLIER[item.demand] || 1.0;
+    const trendMult = TREND_MULTIPLIER[item.trend] || 1.0;
+    const adjusted = Math.round(item.marketValue * demandMult * trendMult);
+    return { value: item.marketValue, source: "Market Value", adjusted };
+  }
+
+  // Fall back to standard getAdjustedValue logic
+  return getAdjustedValue(item);
+}
+
+/**
  * Determine the trade verdict based on total values of both sides.
  * @param {number} leftTotal - Total adjusted value of user's offer
  * @param {number} rightTotal - Total adjusted value of their offer
@@ -208,6 +230,9 @@ function analyzeTradeLocally(leftItems, rightItems, allItemsDB) {
       leftLines.push(
         `• **${item.data.name}**${qtyStr} — ${formatVal(rawTotal)}${adjNote} (${val.source} | Demand: ${item.data.demand} | ${trendEmoji(item.data.trend)} ${item.data.trend})`
       );
+      // Market value warning if significantly different from trueVal
+      const mvWarning = getMarketValueWarning(item.data);
+      if (mvWarning) leftLines.push(mvWarning);
     } else {
       leftLines.push(`• ⚠️ **${item.query}** — *Not found in database*`);
     }
@@ -225,6 +250,9 @@ function analyzeTradeLocally(leftItems, rightItems, allItemsDB) {
       rightLines.push(
         `• **${item.data.name}**${qtyStr} — ${formatVal(rawTotal)}${adjNote} (${val.source} | Demand: ${item.data.demand} | ${trendEmoji(item.data.trend)} ${item.data.trend})`
       );
+      // Market value warning if significantly different from trueVal
+      const mvWarning = getMarketValueWarning(item.data);
+      if (mvWarning) rightLines.push(mvWarning);
     } else {
       rightLines.push(`• ⚠️ **${item.query}** — *Not found in database*`);
     }
@@ -252,4 +280,19 @@ function analyzeTradeLocally(leftItems, rightItems, allItemsDB) {
   ].join("\n");
 }
 
-module.exports = { analyzeTradeLocally, getAdjustedValue, formatVal };
+/**
+ * Generate a market value warning line if marketValue differs significantly from trueVal.
+ * @param {object} item - Item data object
+ * @returns {string|null} Warning line or null if no significant difference
+ */
+function getMarketValueWarning(item) {
+  if (!item || !item.marketValue || !item.trueVal) return null;
+  const diff = Math.abs(item.marketValue - item.trueVal) / item.trueVal;
+  if (diff > 0.3) {
+    const direction = item.marketValue < item.trueVal ? "lower" : "higher";
+    return `  ⚠️ *Market trades ~${formatVal(item.marketValue)} (${direction} than listed value)*`;
+  }
+  return null;
+}
+
+module.exports = { analyzeTradeLocally, getAdjustedValue, getSmartValue, getMarketValueWarning, formatVal };

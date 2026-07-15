@@ -3,7 +3,7 @@
 ## Commands
 
 ### /trade
-Analyze a trade to see if it's a win or loss.
+Analyze a trade to see if it's a win or loss. Shows market value warnings when listed price differs from real trading price.
 
 **Usage:**
 ```
@@ -18,18 +18,89 @@ Analyze a trade to see if it's a win or loss.
 /trade your_offer: 4 curse 4 their_offer: 2 evan
 ```
 
+**Features:**
+- Market value warnings (⚠️) when an item's real trade price differs from listed value
+- Stability warnings (🚨) when items show signs of manipulation
+- Item suggestions when trade is unfair
+
 ---
 
 ### /value
-Look up a single item's full stats and adjusted value. Includes a **"View History"** button to see recent price changes and chart.
+Look up a single item's full stats, market data, stability analysis, and adjusted value. Includes a **"View History"** button.
 
 **Examples:**
 ```
 /value item: Evangeline
 /value item: c3
 /value item: slime booth
-/value item: crev
 ```
+
+**Shows:**
+- TrueVal, Trade Hub, Proto, Demand, Trend
+- 💰 Adjusted Value (with formula breakdown)
+- 📦 Stock, 💎 Cost (Robux), 🔥 Sold Rate (when available)
+- 🏪 Community Market Value (real trade price from active trades)
+- 🚨 Price Gap Warning (when listed value differs >30% from market)
+- 📊 Market Info (remaining stock, sold out status)
+- 🛡️ Stability analysis (manipulation detection)
+
+---
+
+### /compare
+Compare 2-5 items side by side with investment scores, value differences, price efficiency, and stability warnings.
+
+**Usage:**
+```
+/compare items: Evangeline, Nocturne, Curse IV
+/compare items: c3, c4, Scarwing
+```
+
+**Shows:**
+- Each item ranked by investment score (0-100, grade S to F)
+- 💰 Adjusted value with % difference from top item
+- Price efficiency: 💎 Underpriced / ✅ Good value / ➡️ Fair / ⚠️ Pricey / 🔴 Overpriced
+- Value comparison: exact gap, trade fairness (for 2 items), or value spread (for 3-5)
+- Stability warnings per item
+- 💡 Investment suggestion + best value-for-money highlight
+- Score factors: demand, trend, value tier, proto, forecast, scarcity (stock + sold rate)
+
+---
+
+### /roi
+Show top items by Return on Investment (current value ÷ original Robux cost).
+
+**Usage:**
+```
+/roi                    → sorted by ROI multiplier (default)
+/roi sort: 📊 ROI Multiplier
+/roi sort: 💰 Current Value
+/roi sort: 💎 Robux Cost
+```
+
+**Shows:**
+- Item name, Robux cost, current value, ROI multiplier
+- Demand level, sold rate
+- Paginated (10 per page) with navigation buttons
+
+*Note: Only shows items where cost data is available from game.guide detail pages.*
+
+---
+
+### /liquidity
+Show items ranked by how easy they are to sell.
+
+**Usage:**
+```
+/liquidity
+```
+
+**Shows:**
+- Top 15 most liquid items (easiest to sell)
+- Bottom 5 least liquid items (hardest to sell)
+- Liquidity score (0-100) based on: trade count (40pts), sold rate (35pts), demand (25pts)
+- Grades: 🟢 Very Liquid → 🟢 Liquid → 🟡 Moderate → 🟠 Low Liquidity → 🔴 Illiquid
+
+*Note: Requires market data from game.guide detail pages (trade count, sold rate).*
 
 ---
 
@@ -47,18 +118,14 @@ Show market analytics: top valued items, rising/dropping trends, biggest gainers
 - 🏆 Top 10 most valuable items
 - 📈 Currently rising items
 - 📉 Currently dropping items
-- 🚀 Biggest gainers (price went up most)
-- 💀 Biggest losers (price went down most)
+- 🚀 Biggest gainers / 💀 Biggest losers
 - ⚡ Most volatile (most frequent price changes)
 - 💰 Best flip opportunities (High demand, underpriced in Trade Hub)
 
 ---
 
 ### /history
-Show price charts + change history for a specific item. Displays:
-- **Chart 1:** TrueVal + Trade Hub (dual line)
-- **Chart 2:** Proto value (if proto has changed)
-- Paginated list of all recorded changes (newest first)
+Show price charts + change history + stability analysis for a specific item.
 
 **Usage:**
 ```
@@ -70,90 +137,25 @@ Show price charts + change history for a specific item. Displays:
 **Shows:**
 - Dual-line chart (TrueVal green, Trade Hub red)
 - Proto chart (gold, if data exists)
-- Current values (TrueVal, Trade Hub, Proto, Demand, Trend)
-- High / Low / Total Change stats
-- Timeline of all changes (newest first, paginated with ◀ ▶ buttons)
-
-*Note: History accumulates over time. The bot records changes every hour.*
-
----
-
-### /sync
-Force refresh item values from game.guide. Values also auto-update every hour.
-
-**Usage:**
-```
-/sync
-```
-
----
-
-### /help
-Show a quick guide inside Discord (only visible to you).
-
-**Usage:**
-```
-/help
-```
-
----
-
-### /about
-Show bot information, features, and creator details.
-
-**Usage:**
-```
-/about
-```
+- Current values + High/Low/Total Change stats
+- 🛡️ Stability analysis (manipulation detection for the time period)
+- Timeline of all changes (newest first, paginated)
 
 ---
 
 ### /chart
-Show price charts for an item. Displays two charts:
-- **Chart 1:** TrueVal (green) + Trade Hub (red) — dual line comparison
-- **Chart 2:** Proto value (gold) — shown if proto has changed
-
-Requires at least 2 recorded price changes.
+Show price charts for an item (TrueVal + Trade Hub dual line, Proto).
 
 **Usage:**
 ```
 /chart item: Evangeline
 /chart item: c3 days: 14
-/chart item: Nocturne days: 60
-```
-
-**Shows:**
-- TrueVal & Trade Hub chart with change stats
-- Proto chart with change stats
-- Current values, demand, and trend
-
----
-
-### /subscribe
-Subscribe a channel in your server to receive value change notifications. Requires **Manage Channels** permission.
-
-**Usage:**
-```
-/subscribe                    → subscribes current channel
-/subscribe channel: #updates  → subscribes a specific channel
-```
-
-Only one channel per server. Running again replaces the previous subscription.
-
----
-
-### /unsubscribe
-Stop receiving value change notifications in this server. Requires **Manage Channels** permission.
-
-**Usage:**
-```
-/unsubscribe
 ```
 
 ---
 
 ### /forecast
-Price trend prediction for an item based on recent price history. Uses linear regression to project future values.
+Price trend prediction based on recent price history (linear regression).
 
 **Usage:**
 ```
@@ -162,12 +164,29 @@ Price trend prediction for an item based on recent price history. Uses linear re
 ```
 
 **Shows:**
-- Current value and trend direction (Rising/Falling/Stable)
+- Current value and trend direction
 - Daily change rate (value + percentage)
 - 7-day price prediction
-- Confidence level (Low/Medium/High) based on data consistency
+- Confidence level (Low/Medium/High)
 
-*Requires at least 3 recorded price changes for the item.*
+*Requires at least 3 recorded price changes.*
+
+---
+
+### /top
+Show top 100 items with configurable sorting. Paginated.
+
+**Usage:**
+```
+/top                              → default: Investment Grade
+/top sort: 📊 Investment Grade
+/top sort: 💎 TrueVal (highest)
+/top sort: 🏪 Trade Hub (highest)
+/top sort: 🪙 Proto (highest)
+/top sort: 🔥 Demand (highest)
+/top sort: 📈 Rising items
+/top sort: 📉 Dropping items
+```
 
 ---
 
@@ -183,9 +202,7 @@ Manage price alerts. Get a DM when an item hits your target price.
 ```
 
 - Max 10 watches per user
-- Alerts are sent via DM
-- Watches auto-remove after triggering
-- Conditions: `above` (≥ target) or `below` (≤ target)
+- Alerts sent via DM, auto-remove after triggering
 
 ---
 
@@ -194,38 +211,20 @@ Track your item holdings, see total value with ROI, and get trade deal alerts.
 
 **Usage:**
 ```
-/portfolio add item: Nocturne qty: 2       → add items (records current price as buy price)
-/portfolio view                            → see all holdings + ROI
-/portfolio remove item: Nocturne           → remove item
-/portfolio remove item: Nocturne qty: 1    → remove specific quantity
-/portfolio clear                           → clear everything
-/portfolio watch toggle: 🔔 On            → enable trade deal DM alerts
-/portfolio watch toggle: 🔕 Off           → disable alerts
+/portfolio add item: Nocturne qty: 2
+/portfolio view
+/portfolio remove item: Nocturne
+/portfolio clear
+/portfolio watch toggle: 🔔 On
+/portfolio watch toggle: 🔕 Off
 ```
 
-**Shows:**
-- Each item with quantity, current value, and ROI %
-- Total portfolio value vs total invested
-- Total ROI (profit/loss)
-
-**Trade Deal Alerts (portfolio watch):**
-- When enabled, the bot scans game.guide trade hub every 15 minutes
-- If someone posts a WIN trade that wants items in your portfolio, you get a DM:
-```
-🟢 WIN +61%
-> 🎁 You get: Curse IV
-> 💸 They want: Platinum Menace, Final Census, Seastrum
-> View Trade (link)
-```
-- Only WIN trades (+15% or more) and OPEN trades are shown
-- Max 5 deals per alert
-
-Max 25 items per user. Buy price is averaged when adding more of the same item.
+**Trade Deal Alerts:** When enabled, bot scans game.guide every 15 minutes and DMs you when WIN trades appear for your items.
 
 ---
 
 ### /health
-Show the overall market health index — is the market bullish or bearish?
+Show overall market health index — is the market bullish or bearish?
 
 **Usage:**
 ```
@@ -233,128 +232,84 @@ Show the overall market health index — is the market bullish or bearish?
 /health days: 14
 ```
 
-**Shows:**
-- Sentiment score (-100 to +100)
-- Visual sentiment bar
-- Market status: Bullish / Slightly Bullish / Neutral / Slightly Bearish / Bearish
-- Breakdown: rising vs dropping, gainers vs losers, demand distribution
-- Activity level: Quiet → Moderate → Active → Very Active
+---
+
+### /subscribe / /unsubscribe
+Subscribe a channel to receive value change notifications. Requires **Manage Channels** permission.
+
+```
+/subscribe                    → subscribes current channel
+/subscribe channel: #updates  → subscribes a specific channel
+/unsubscribe                  → stop alerts
+```
 
 ---
 
-### /compare
-Compare 2-5 items side by side with investment scores and suggestions.
-
-**Usage:**
-```
-/compare items: Evangeline, Nocturne, Curse IV
-/compare items: c3, c4, Scarwing
-```
-
-**Shows:**
-- Each item ranked by investment score (0-100, grade S to F)
-- Values, demand, trend, and forecast for each
-- 💡 Investment suggestion (best pick, avoid, swap recommendations)
-- Score based on: demand + trend + forecast direction
+### /sync
+Force refresh item values from game.guide (owner only). Values auto-update every hour.
 
 ---
 
-### /top
-Show top 100 items with configurable sorting. Paginated with ⏮ ◀ ▶ ⏭ buttons.
+### /help
+Show a quick usage guide inside Discord.
 
-**Usage:**
-```
-/top                              → default: Investment Grade
-/top sort: 📊 Investment Grade    → best investments overall
-/top sort: 💎 TrueVal (highest)   → most expensive by TrueVal
-/top sort: 🏪 Trade Hub (highest) → most expensive by Trade Hub
-/top sort: 🪙 Proto (highest)     → highest Proto value
-/top sort: 🔥 Demand (highest)    → High/Limited demand first
-/top sort: 📈 Rising items        → only items with Rising trend
-/top sort: 📉 Dropping items      → only items with Dropping trend
-```
+---
 
-**Shows (per item):**
-- Investment grade (S/A/B/C/D/F) + score
-- TrueVal, Trade Hub, Proto
-- Demand, Trend, Adjusted Value
-- 5 items per page, 🥇🥈🥉 for top 3
+### /about
+Show bot information and creator details.
 
 ---
 
 ## Quantity Format
-
-Quantity goes **before** the item name only:
 
 | Format | Example | Result |
 |--------|---------|--------|
 | Number + space | `3 Nocturne` | 3× Nocturne |
 | Number + x + space | `3x Nocturne` | 3× Nocturne |
 | With aliases | `4 c4` | 4× Curse IV |
-| With aliases | `3 c3` | 3× Curse III |
 | No number | `Evangeline` | 1× Evangeline |
 
-Separate multiple items with commas:
-```
-3 c3, 2 Nocturne, Scarwing
-```
+Separate multiple items with commas: `3 c3, 2 Nocturne, Scarwing`
 
 ---
 
 ## Flexible Item Names
 
-All item fields have **autocomplete** — start typing and the bot suggests matching items in a dropdown. You can also type freely using shortcuts and abbreviations:
+All item fields have **autocomplete** — start typing and the bot suggests matches.
 
 ### Quick Aliases
-
-| Type this | Gets this |
-|-----------|-----------|
+| Type | Gets |
+|------|------|
 | `c3` | Curse III |
 | `c4` | Curse IV |
 | `stb` | Slime Trade Booth |
 | `rb` | Seraphic Rainbow |
 
 ### Shortened Names
-
-| Type this | Gets this |
-|-----------|-----------|
+| Type | Gets |
+|------|------|
 | `evan` | Evangeline |
 | `noc` | Nocturne |
 | `reaper` | The Reaper |
 | `cuddly` | Cuddly Claw |
-| `malev` | Malevolence |
 
 ### Partial Words
-
-| Type this | Gets this |
-|-----------|-----------|
+| Type | Gets |
+|------|------|
 | `slime booth` | Slime Trade Booth |
 | `heavy glory` | Heavyblade of Glory |
-| `eye seraph` | Eye of Seraph |
 | `purr rebel` | Purr of Rebellion |
-| `rb sera` | Seraphic Rainbow |
 
 ### Condensed Names
-
-| Type this | Gets this |
-|-----------|-----------|
+| Type | Gets |
+|------|------|
 | `crev` | Cthulu's Revenge |
-| `treaper` | The Reaper |
 | `pheaven` | Puff of Heaven |
 | `cdemon` | Cyanic Demonride |
 
-### Without Apostrophes
-
-| Type this | Gets this |
-|-----------|-----------|
-| `dutchmans` | Dutchman's Penance |
-| `ravens hush` | Raven's Hush |
-| `cthulu revenge` | Cthulu's Revenge |
-
 ### Typos (Auto-Corrected)
-
-| Type this | Gets this |
-|-----------|-----------|
+| Type | Gets |
+|------|------|
 | `pearsickle` | Pearsicle |
 | `scarwng` | Scarwing |
 | `evangline` | Evangeline |
@@ -374,80 +329,55 @@ All item fields have **autocomplete** — start typing and the bot suggests matc
 | 🔴🔴 **BIG LOSS** | Massive value gap | Decline |
 
 ### Adjusted Value
-
-Items show raw value and adjusted value based on demand/trend:
-- `S$ 400.0K` = raw value (no adjustment needed)
-- `S$ 400.0K → Adj: S$ 360.0K` = demand/trend reduced the effective value
-
-**Demand effect:** Limited +25% | High +10% | Medium 0% | Low -10% | Very Low -20%
-
-**Trend effect:** 📈 Rising +10% | ➡️ Stable 0% | 📉 Dropping -12% | ⚡ Unstable -5%
-
-### Item Suggestions
-
-If a trade is unfair, the bot suggests specific items to add:
 ```
-💡 Ask them to add: The Reaper (S$ 1.76M) (≈ S$ 2.20M needed).
+Adjusted Value = Raw Value × Demand Multiplier × Trend Multiplier
 ```
 
----
+| Demand | Effect | | Trend | Effect |
+|--------|--------|---|-------|--------|
+| Limited | +25% | | 📈 Rising | +10% |
+| Very High | +15% | | ➡️ Stable | 0% |
+| High | +10% | | 📉 Dropping | -12% |
+| Medium | 0% | | ⚡ Unstable | -5% |
+| Low | -10% | | | |
+| Very Low | -20% | | | |
 
-## Market Analytics
+### Smart Value
+When community market data is available (50+ active trades), the bot uses real trade prices instead of potentially manipulated TrueVal. This gives more accurate trade verdicts.
 
-The `/market` command shows live market insights:
+### Manipulation Detection
 
-- **Best Flip Opportunities** — Items where Trade Hub price is lower than TrueVal with High demand. Buy low in Trade Hub, sell at TrueVal.
-- **Most Volatile** — Items that change price frequently. Good for active traders.
-- **Biggest Gainers/Losers** — Items that gained or lost the most value over the selected period.
+| Level | Score | Meaning |
+|-------|-------|---------|
+| ✅ Stable | 85-100 | No issues detected |
+| ℹ️ Moderate | 65-84 | Minor activity (no warning shown) |
+| ⚠️ Suspicious | 40-64 | Unusual changes detected |
+| 🚨 Likely Manipulated | 0-39 | Strong manipulation signals |
 
----
+### Price Efficiency (in /compare)
 
-## Price History
-
-The `/history` command tracks how an item's value changed over time:
-
-```
-📜 Evangeline — Price History (last 30 days)
-
-Current: TrueVal: S$ 4.50M | Trade Hub: S$ 4.60M | Demand: High | Trend: Stable
-
-📊 3 changes recorded:
-> 2 Jun, 14:00  TrueVal: S$ 4.20M → S$ 4.35M
-> 5 Jun, 08:00  TrueVal: S$ 4.35M → S$ 4.50M
-> 8 Jun, 20:00  Trade Hub: S$ 4.40M → S$ 4.60M
-```
-
-History builds up automatically. More time = more data = better analytics.
-
----
-
-## Value Change Notifications
-
-The bot posts automatic notifications to a designated channel when values change:
-
-```
-📢 FISCH VALUE UPDATE — 11 Jun 2026, 14:00 WIB
-
-📈 VALUE UP (3)
-> • Grand Symphony — Trade Hub: S$ 152.0K → S$ 154.0K
-> • Nocturne — Trend: Stable → Rising
-
-📉 VALUE DOWN (2)
-> • Pearsicle — Trade Hub: S$ 31.1K → S$ 30.5K
-> • Curse III — Trend: Stable → Dropping
-```
+| Rating | Meaning |
+|--------|---------|
+| 💎 Underpriced | High quality, low cost — best deal |
+| ✅ Good value | Above average value for price |
+| ➡️ Fair price | Expected price for its quality |
+| ⚠️ Pricey | Paying more than expected for quality |
+| 🔴 Overpriced | Way too expensive for what you get |
 
 ---
 
 ## Tips
 
-- Values update automatically every hour from game.guide
-- Items with 📈 Rising trend are worth more — hold them
-- Items with 📉 Dropping trend are worth less — trade them away soon
-- Use `/market` to find flip opportunities before trading
-- Use `/history` to check if an item's value is going up or down before accepting a trade
-- Use `/forecast` to see where an item's price is heading
-- Use `/watch` to get notified the moment an item hits your target price
-- Use `/portfolio` to track your investments and see ROI
-- Use `/health` to check if the overall market is bullish or bearish
+- Values update every hour automatically from game.guide
+- 🚨 **Always check Price Gap warnings** — don't overpay based on inflated TrueVal
+- ⚠️ **Check stability** before trading high-value items
+- Use `/roi` to find the best investments per Robux spent
+- Use `/liquidity` to verify you can actually sell at listed price
+- Use `/compare` to see which item gives best value-for-money
+- Use `/market` to find flip opportunities
+- Use `/history` to check trends before accepting trades
+- Use `/forecast` to see where prices are heading
+- Use `/watch` to get DM'd when an item hits your target
+- Use `/portfolio` to track investments and get trade deal alerts
+- Use `/health` to check if the market is bullish or bearish
 - History data is kept for 90 days then auto-pruned

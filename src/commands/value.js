@@ -55,6 +55,66 @@ async function execute(interaction) {
     )
     .setFooter({ text: "Source: game.guide/fisch-value-list" });
 
+  // Add Stock/Cost/Sold Rate if available
+  const marketFields = [];
+  if (item.stock !== null && item.stock !== undefined) {
+    marketFields.push({ name: "📦 Stock", value: item.stock.toLocaleString(), inline: true });
+  }
+  if (item.cost !== null && item.cost !== undefined) {
+    marketFields.push({ name: "💎 Cost", value: `${item.cost.toLocaleString()} Robux`, inline: true });
+  }
+  if (item.soldRate !== null && item.soldRate !== undefined) {
+    const rateEmoji = item.soldRate >= 90 ? "🔥" : item.soldRate >= 60 ? "✅" : item.soldRate >= 30 ? "⚠️" : "❄️";
+    marketFields.push({ name: `${rateEmoji} Sold Rate`, value: `${item.soldRate}%`, inline: true });
+  }
+  if (marketFields.length > 0) {
+    embed.addFields(...marketFields);
+  }
+
+  // Add scarcity/ROI info if we have both stock and value data
+  if (item.stock && item.cost && val.adjusted > 0) {
+    const availableStock = item.soldRate ? Math.round(item.stock * (1 - item.soldRate / 100)) : null;
+    const scarcityNote = availableStock !== null && availableStock === 0
+      ? "🔒 **Sold out** — no longer available from source"
+      : availableStock !== null
+        ? `~${availableStock.toLocaleString()} remaining from source`
+        : "";
+    if (scarcityNote) {
+      embed.addFields({ name: "📊 Market Info", value: scarcityNote, inline: false });
+    }
+  }
+
+  // Show Market Value (community trade price) if available
+  if (item.marketValue) {
+    const mvStr = formatVal(item.marketValue);
+    const tradeStr = item.tradeCount ? ` (${item.tradeCount.toLocaleString()} trades)` : "";
+    // Compare market value to TrueVal for price accuracy
+    let accuracyNote = "";
+    if (item.trueVal && item.marketValue) {
+      const diff = ((item.trueVal - item.marketValue) / item.marketValue * 100).toFixed(0);
+      if (Math.abs(diff) > 20) {
+        accuracyNote = diff > 0
+          ? ` — ⚠️ TrueVal is ${diff}% higher than market`
+          : ` — 💎 Trading ${Math.abs(diff)}% above TrueVal`;
+      }
+    }
+    embed.addFields({ name: "🏪 Community Market Value", value: `${mvStr}${tradeStr}${accuracyNote}`, inline: false });
+
+    // Prominent price gap warning when marketValue differs from trueVal by more than 30%
+    if (item.trueVal && item.marketValue) {
+      const gapPct = Math.abs(item.trueVal - item.marketValue) / Math.max(item.trueVal, item.marketValue);
+      if (gapPct > 0.3) {
+        const listedStr = formatVal(item.trueVal);
+        const marketStr = formatVal(item.marketValue);
+        embed.addFields({
+          name: "🚨 Price Gap Warning",
+          value: `**Listed ${listedStr} but trades at ~${marketStr}.** Real value is likely closer to market price.`,
+          inline: false,
+        });
+      }
+    }
+  }
+
   if (stabilityBlock) {
     embed.addFields({ name: "🛡️ Stability", value: stabilityBlock, inline: false });
   }

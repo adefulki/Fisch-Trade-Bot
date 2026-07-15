@@ -65,6 +65,17 @@ function scoreItem(item, forecast) {
   if (item.trueVal && item.tradeHub) { score += 3; }
   else if (!item.trueVal && !item.tradeHub) { score -= 5; reasons.push("No listed value"); }
 
+  // Scarcity scoring (Stock + Sold Rate)
+  if (item.soldRate !== null && item.soldRate !== undefined) {
+    if (item.soldRate >= 95) { score += 10; reasons.push("Sold out (scarce)"); }
+    else if (item.soldRate >= 80) { score += 5; reasons.push("High sold rate"); }
+    else if (item.soldRate < 30) { score -= 5; reasons.push("Low sold rate"); }
+  }
+  if (item.stock !== null && item.stock !== undefined) {
+    if (item.stock <= 500) { score += 5; reasons.push("Low stock"); }
+    else if (item.stock >= 10000) { score -= 3; reasons.push("High stock"); }
+  }
+
   score = Math.max(0, Math.min(100, score));
   return { score, reasons };
 }

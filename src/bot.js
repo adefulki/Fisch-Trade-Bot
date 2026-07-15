@@ -29,6 +29,9 @@ const portfolioCmd = require("./commands/portfolio");
 const healthCmd = require("./commands/health");
 const compareCmd = require("./commands/compare");
 const topCmd = require("./commands/top");
+const roiCmd = require("./commands/roi");
+const liquidityCmd = require("./commands/liquidity");
+const changelogCmd = require("./commands/changelog");
 
 /** Discord client with required intents */
 const client = new Client({
@@ -303,6 +306,15 @@ client.on("interactionCreate", async (interaction) => {
         break;
       case "top":
         await topCmd.execute(interaction, items);
+        break;
+      case "roi":
+        await roiCmd.execute(interaction, items);
+        break;
+      case "liquidity":
+        await liquidityCmd.execute(interaction, items);
+        break;
+      case "changelog":
+        await changelogCmd.execute(interaction);
         break;
       default:
         break;

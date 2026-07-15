@@ -264,7 +264,15 @@ function parseItemInput(input) {
   return results;
 }
 
-module.exports = { findItem, parseItemInput, setItems };
+/**
+ * Get the current items array.
+ * @returns {Array} Current item database
+ */
+function getItems() {
+  return items;
+}
+
+module.exports = { findItem, parseItemInput, setItems, getItems };
 
 // --- Async version with live lookup fallback ---
 const { fetchItemLive } = require("./live-lookup");

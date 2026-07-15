@@ -132,6 +132,22 @@ function analyzeStability(item, days = 14) {
     }
   }
 
+  // ─── 6. Stock/Demand mismatch ───
+  if (item.stock && item.soldRate !== null && item.soldRate !== undefined) {
+    // High stock + low sold rate but "High"/"Very High" demand = suspicious
+    if (item.stock >= 5000 && item.soldRate < 50 &&
+        (item.demand === "High" || item.demand === "Very High")) {
+      penaltyScore += 15;
+      flags.push("DEMAND_MISMATCH");
+      warnings.push(`⚠️ ${item.demand} demand but only ${item.soldRate}% sold (${item.stock.toLocaleString()} stock)`);
+    }
+    // Sold out but marked "Low" demand = potential undervaluation or stale data
+    if (item.soldRate >= 99 && item.demand === "Low") {
+      flags.push("UNDERVALUED");
+      warnings.push("ℹ️ 99%+ sold rate but marked Low demand — may be undervalued");
+    }
+  }
+
   // ─── Calculate final score ───
   const score = Math.max(0, Math.min(100, 100 - penaltyScore));
 

@@ -312,6 +312,11 @@ async function scrapeValues() {
       itemName = cleanItemName(itemName);
       if (!itemName || itemName.length < 2) return;
 
+      // Extract Stock, Cost, Sold Rate if present in card
+      const stockMatch = cardText.match(/Stock:?\s*([\d,]+)/i);
+      const costMatch = cardText.match(/Cost:?\s*([\d,]+)\s*Robux/i);
+      const soldRateMatch = cardText.match(/Sold\s*Rate:?\s*([\d.]+)%/i);
+
       const item = {
         name: itemName,
         trueVal: trueValMatch ? parseValue(trueValMatch[1]) : null,
@@ -319,6 +324,9 @@ async function scrapeValues() {
         proto: protoMatch ? parseProto(protoMatch[1]) : null,
         demand: demandMatch ? demandMatch[1] : "-",
         trend: trendMatch ? trendMatch[1] : "-",
+        stock: stockMatch ? parseInt(stockMatch[1].replace(/,/g, "")) || null : null,
+        cost: costMatch ? parseInt(costMatch[1].replace(/,/g, "")) || null : null,
+        soldRate: soldRateMatch ? parseFloat(soldRateMatch[1]) || null : null,
       };
 
       if (!items.find((i) => i.name.toLowerCase() === item.name.toLowerCase())) {

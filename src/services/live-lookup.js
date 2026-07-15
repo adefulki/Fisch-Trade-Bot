@@ -1,7 +1,7 @@
 /**
  * Live item lookup service.
  * Fetches individual item pages from game.guide when an item isn't in the database.
- * Supports new card-based page design (2025+).
+ * Extracts: Value, Proto, Demand, Trend, Stock, Cost, Sold Rate.
  */
 
 const axios = require("axios");
@@ -14,7 +14,6 @@ const cheerio = require("cheerio");
  * @returns {object|null} Item data or null if not found
  */
 async function fetchItemLive(itemName) {
-  // Convert name to URL slug (e.g. "Cthulu's Revenge" → "cthulus-revenge")
   const slug = itemName
     .toLowerCase()
     .replace(/[''`]/g, "")
@@ -35,23 +34,28 @@ async function fetchItemLive(itemName) {
     const $ = cheerio.load(html);
     const pageText = $("body").text();
 
-    // Check if it's a valid item page (new or old format)
-    if (!pageText.includes("TrueVal") && !pageText.includes("DEMAND") && !pageText.includes("demand")) return null;
+    if (!pageText.includes("TrueVal") && !pageText.includes("Value") && !pageText.includes("demand")) return null;
 
-    // ─── New format (2025 card design) ───
-    // Values appear as "TrueVal: S$ 1.57M" or "TrueVal:S$ 1.57M"
     let trueVal = null;
     let tradeHub = null;
     let proto = null;
     let demand = "-";
     let trend = "-";
+    let stock = null;
+    let cost = null;
+    let soldRate = null;
 
-    // Try new format first
-    const trueValMatch = pageText.match(/TrueVal:?\s*(S\$\s*[\d,.]+[MK]?|N\/A)/i);
-    const tradeHubMatch = pageText.match(/Trade\s*Hub:?\s*(S\$\s*[\d,.]+[MK]?|N\/A)/i);
-    const protoMatch = pageText.match(/Proto:?\s*([\d,.]+\s*K?|N\/A|TBD)/i);
-    const demandMatch = pageText.match(/(Very Low|Very High|Low|Medium|High|Limited)/i);
-    const trendMatch = pageText.match(/\b(Rising|Stable|Dropping|Unstable)\b/i);
+    // ─── Value extraction ───
+    const trueValMatch = pageText.match(/(?:TrueVal|S\$\s*VALUE|Value):?\s*(S?\$?\s*[\d,.]+[MK]?|N\/A)/i);
+    const tradeHubMatch = pageText.match(/Trade\s*Hub:?\s*(S?\$?\s*[\d,.]+[MK]?|N\/A)/i);
+    const protoMatch = pageText.match(/Proto(?:\s*Value)?:?\s*([\d,.]+\s*K?|N\/A|TBD)/i);
+    const demandMatch = pageText.match(/Demand:?\s*(Very Low|Very High|Limited|Low|Medium|High)/i);
+    const trendMatch = pageText.match(/Trend:?\s*(Rising|Dropping|Unstable|Stable)/i);
+
+    // ─── Stock, Cost, Sold Rate extraction ───
+    const stockMatch = pageText.match(/Stock:?\s*([\d,]+)/i);
+    const costMatch = pageText.match(/Cost:?\s*([\d,]+)\s*Robux/i);
+    const soldRateMatch = pageText.match(/Sold\s*Rate:?\s*([\d.]+)%/i);
 
     if (trueValMatch && trueValMatch[1] !== "N/A") {
       trueVal = parsePageValue(trueValMatch[1]);
@@ -61,39 +65,38 @@ async function fetchItemLive(itemName) {
     }
     if (protoMatch && protoMatch[1] !== "N/A" && protoMatch[1] !== "TBD") {
       const protoStr = protoMatch[1].replace(/,/g, "").trim();
-      if (protoStr.toUpperCase().includes("K")) {
-        proto = parseFloat(protoStr) * 1000;
-      } else {
-        proto = parseFloat(protoStr) || null;
-      }
+      proto = protoStr.toUpperCase().includes("K") ? parseFloat(protoStr) * 1000 : parseFloat(protoStr) || null;
     }
     if (demandMatch) demand = demandMatch[1];
     if (trendMatch) trend = trendMatch[1];
+    if (stockMatch) stock = parseInt(stockMatch[1].replace(/,/g, "")) || null;
+    if (costMatch) cost = parseInt(costMatch[1].replace(/,/g, "")) || null;
+    if (soldRateMatch) soldRate = parseFloat(soldRateMatch[1]) || null;
 
-    // ─── Legacy format fallback ───
-    if (!trueVal && !tradeHub && !proto) {
-      const legacyTrueVal = pageText.match(/S\$ VALUE\s*([\d,.]+[MK]?|N\/A)/i);
-      const legacyProto = pageText.match(/PROTO VALUE\s*([\d,.]+[K]?|N\/A)/i);
-      const marketMatch = pageText.match(/Market Value:\s*~?([\d,.]+[MK]?)/i);
-
-      if (legacyTrueVal && legacyTrueVal[1] !== "N/A") {
-        trueVal = parsePageValue(legacyTrueVal[1]);
-      } else if (marketMatch) {
-        trueVal = parsePageValue(marketMatch[1]);
-      }
-
-      if (legacyProto && legacyProto[1] !== "N/A") {
-        const pStr = legacyProto[1].replace(/,/g, "");
-        proto = pStr.toUpperCase().includes("K") ? parseFloat(pStr) * 1000 : parseFloat(pStr) || null;
-      }
-
-      const legacyDemand = pageText.match(/DEMAND\s*(Very Low|Very High|Low|Medium|High|Limited)/i);
-      const legacyTrend = pageText.match(/TREND\s*(Rising|Stable|Dropping|Unstable)/i);
-      if (legacyDemand && demand === "-") demand = legacyDemand[1];
-      if (legacyTrend && trend === "-") trend = legacyTrend[1];
+    // ─── Market Value from active trades (real community price) ───
+    let marketValue = null;
+    let tradeCount = null;
+    const marketMatch = pageText.match(/Market\s*Value:?\s*~?([\d,.]+[MK]?)\s*\((\d+)\s*trades?\)/i);
+    if (marketMatch) {
+      marketValue = parsePageValue(marketMatch[1]);
+      tradeCount = parseInt(marketMatch[2]) || null;
     }
 
-    // Only return if we got at least something useful
+    // ─── Fallback: try without labels (detail page has "Value:" not "TrueVal:") ───
+    if (!trueVal && !tradeHub) {
+      const valMatch = pageText.match(/Value:?\s*S\$\s*([\d,.]+[MK]?)/i);
+      if (valMatch) trueVal = parsePageValue(valMatch[1]);
+    }
+
+    if (!demand || demand === "-") {
+      const dm = pageText.match(/(Very Low|Very High|Limited|Low|Medium|High)/i);
+      if (dm) demand = dm[1];
+    }
+    if (!trend || trend === "-") {
+      const tm = pageText.match(/(Rising|Dropping|Unstable|Stable)/i);
+      if (tm) trend = tm[1];
+    }
+
     const hasValue = trueVal !== null || tradeHub !== null || proto !== null;
     const hasMetadata = demand !== "-" || trend !== "-";
     if (!hasValue && !hasMetadata) return null;
@@ -105,6 +108,11 @@ async function fetchItemLive(itemName) {
       proto,
       demand,
       trend,
+      stock,
+      cost,
+      soldRate,
+      marketValue,
+      tradeCount,
       source: "live",
     };
   } catch (error) {
