@@ -3,7 +3,7 @@
  * Restricted to bot owner only.
  */
 
-const { EmbedBuilder } = require("discord.js");
+const { EmbedBuilder, MessageFlags } = require("discord.js");
 const { isBotOwner } = require("../utils/permissions");
 
 /** Latest changelog content */
@@ -72,10 +72,12 @@ async function execute(interaction) {
   if (!isBotOwner(interaction.user.id)) {
     await interaction.reply({
       content: "⚠️ Only the bot owner can use this command.",
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
     return;
   }
+
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
   const description = CHANGELOG.sections.map((section) => {
     const items = section.items.map((item) => `• ${item}`).join("\n");
@@ -89,7 +91,7 @@ async function execute(interaction) {
     .setFooter({ text: `Released: ${CHANGELOG.date}` })
     .setTimestamp();
 
-  await interaction.reply({ embeds: [embed], ephemeral: true });
+  await interaction.editReply({ embeds: [embed] });
 }
 
 module.exports = { execute };
