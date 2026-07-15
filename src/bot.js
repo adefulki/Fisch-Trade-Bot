@@ -108,15 +108,33 @@ cron.schedule("0 * * * *", async () => {
   await syncAndNotify();
 });
 
-// --- Cron Job: Scan trade listings every 15 minutes ---
+// --- Cron Job: Enrich items with detail page data every 30 minutes (DISABLED) ---
+const { enrichBatch } = require("./services/enrichment");
+
+// cron.schedule("15,45 * * * *", async () => {
+//   console.log("📡 Cron triggered: enriching item details...");
+//   try {
+//     const result = await enrichBatch(items);
+//     if (result.enriched > 0) {
+//       const { loadItems: reloadItems } = require("./services/scraper");
+//       items = reloadItems();
+//       setItems(items);
+//       setAutocompleteItems(items);
+//     }
+//   } catch (e) {
+//     console.error("❌ Enrichment error:", e.message);
+//   }
+// });
+
+// --- Cron Job: Scan trade listings (DISABLED) ---
 const { scrapeTradeListings, findDealsForUser } = require("./services/trade-scanner");
 const { getPortfolio, getWatchingUsers } = require("./data/portfolio");
 const { formatVal: fmtVal } = require("./utils/format");
 
-cron.schedule("*/3 * * * *", async () => {
-  console.log("🔍 Cron triggered: scanning trade listings...");
-  await scanTradeDeals();
-});
+// cron.schedule("*/3 * * * *", async () => {
+//   console.log("🔍 Cron triggered: scanning trade listings...");
+//   await scanTradeDeals();
+// });
 
 /**
  * Scan trade listings and DM users who have portfolio watch enabled.
