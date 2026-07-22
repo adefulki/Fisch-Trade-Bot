@@ -9,21 +9,31 @@ const { getSubscribedChannels } = require("../data/subscriptions");
 
 /** Latest changelog content */
 const CHANGELOG = {
-  version: "v2.0.0",
-  date: "July 15, 2026",
+  version: "v2.1.0",
+  date: "July 22, 2026",
   sections: [
     {
       title: "🆕 New Commands",
       items: [
+        "`/similar` — Find items within a value range (trade alternatives)",
         "`/roi` — Top items by ROI (value ÷ Robux cost)",
         "`/liquidity` — Items ranked by ease of selling",
-        "`/changelog` — View latest bot changes",
+        "`/changelog` — Broadcast changelog to all servers",
+      ],
+    },
+    {
+      title: "📈 Trading Hub Insights",
+      items: [
+        "Real supply/demand from game.guide Trading Hub",
+        "`/top` new sorts: 🎯 Most Wanted & 🔥 Hot (most traded)",
+        "`/value` shows wanted/offered counts + oversupplied/undersupplied",
+        "`/trade` warns about supply issues on traded items",
       ],
     },
     {
       title: "🛡️ Manipulation Detection",
       items: [
-        "Detects: spikes, pump & dump, demand flips, oscillation, fake trends",
+        "Detects: spikes, pump & dump, demand flips, fake trends, supply mismatch",
         "Confidence: Stable → Suspicious → Likely Manipulated",
         "Integrated into `/value`, `/trade`, `/compare`, `/history`",
       ],
@@ -31,35 +41,24 @@ const CHANGELOG = {
     {
       title: "📊 Market Data",
       items: [
-        "Stock, Cost (Robux), Sold Rate from item detail pages",
-        "Community Market Value from active trades",
-        "🚨 Price Gap Warning when listed ≠ market price (>30% diff)",
-        "Smart Value: uses real trade data over possibly-manipulated TrueVal",
+        "Stock, Cost (Robux), Sold Rate, Market Value on `/value`",
+        "🚨 Price Gap Warning when listed ≠ real market price (>30%)",
+        "Smart Value: real trade data over manipulated TrueVal",
       ],
     },
     {
-      title: "⚖️ Compare Overhaul",
+      title: "⚖️ Compare & Similar",
       items: [
-        "Value difference display (% from top, exact gap)",
-        "Price efficiency: 💎 Underpriced → 🔴 Overpriced",
-        "Trade fairness for 2 items, value spread for 3-5",
-        "Scarcity scoring (stock + sold rate)",
-      ],
-    },
-    {
-      title: "🌐 Scraper Rewrite",
-      items: [
-        "Puppeteer support for JS-rendered game.guide",
-        "New card layout parser (2025 redesign)",
-        "Filters out all-N/A items",
+        "`/compare` — value diff, price efficiency, stability warnings",
+        "`/similar` — fair swaps, cheaper/pricier options with trade hints",
       ],
     },
     {
       title: "🐛 Fixes",
       items: [
-        "\"Very High\" demand: color, multiplier, notifier ordering",
-        "`/sync` timeout crash prevention",
-        "Trend parsing for new card design",
+        "\"Very High\" demand handling (color, multiplier, notifier)",
+        "Scraper rewrite for game.guide 2025 redesign",
+        "Trend parsing, N/A reduction, sync timeout fix",
       ],
     },
   ],

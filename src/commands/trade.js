@@ -8,6 +8,7 @@ const { parseItemInput } = require("../services/matcher");
 const { analyzeTrade } = require("../services/ai");
 const { sendEmbed } = require("../utils/discord");
 const { getStabilityWarning } = require("../services/stability");
+const { getItemSupplyDemand } = require("../services/trading-insights");
 
 /**
  * Handle the /trade slash command interaction.
@@ -47,9 +48,20 @@ async function execute(interaction, items) {
     })
     .filter(Boolean);
 
+  // Check for supply/demand issues
+  const supplyWarnings = allTradeItems
+    .map((i) => {
+      const sd = getItemSupplyDemand(i.data.name);
+      if (sd.isOversupplied) return `**${i.data.name}:** ⚠️ Oversupplied — hard to sell at listed price`;
+      if (sd.isUndersupplied) return `**${i.data.name}:** 💎 Undersupplied — high real demand`;
+      return "";
+    })
+    .filter(Boolean);
+
   let stabilitySection = "";
-  if (stabilityWarnings.length > 0) {
-    stabilitySection = "\n\n━━━━━━━━━━━━━━━━━━━━━━━━\n🛡️ **STABILITY WARNINGS:**\n" + stabilityWarnings.join("\n");
+  const allWarnings = [...stabilityWarnings, ...supplyWarnings];
+  if (allWarnings.length > 0) {
+    stabilitySection = "\n\n━━━━━━━━━━━━━━━━━━━━━━━━\n🛡️ **WARNINGS:**\n" + allWarnings.join("\n");
   }
 
   // Determine color based on verdict

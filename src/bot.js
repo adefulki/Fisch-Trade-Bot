@@ -32,6 +32,7 @@ const topCmd = require("./commands/top");
 const roiCmd = require("./commands/roi");
 const liquidityCmd = require("./commands/liquidity");
 const changelogCmd = require("./commands/changelog");
+const similarCmd = require("./commands/similar");
 
 /** Discord client with required intents */
 const client = new Client({
@@ -247,6 +248,10 @@ client.on("ready", async () => {
     setItems(items);
     setAutocompleteItems(items);
   }
+
+  // Fetch trading insights on startup
+  const { fetchTradingInsights } = require("./services/trading-insights");
+  fetchTradingInsights().catch(() => {});
 });
 
 // --- Command router ---
@@ -333,6 +338,9 @@ client.on("interactionCreate", async (interaction) => {
         break;
       case "changelog":
         await changelogCmd.execute(interaction, context);
+        break;
+      case "similar":
+        await similarCmd.execute(interaction, items);
         break;
       default:
         break;

@@ -165,6 +165,8 @@ const commands = [
           { name: "🔥 Demand (highest)", value: "demand" },
           { name: "📈 Rising items", value: "rising" },
           { name: "📉 Dropping items", value: "dropping" },
+          { name: "🎯 Most Wanted (real demand)", value: "wanted" },
+          { name: "🔥 Hot (most traded)", value: "hot" },
         )
     ),
   new SlashCommandBuilder()
@@ -184,6 +186,15 @@ const commands = [
   new SlashCommandBuilder()
     .setName("changelog")
     .setDescription("Show latest bot changelog (admin only)"),
+  new SlashCommandBuilder()
+    .setName("similar")
+    .setDescription("Find items within a value range of an item (trade alternatives)")
+    .addStringOption((option) =>
+      option.setName("item").setDescription("Target item to find alternatives for").setRequired(true).setAutocomplete(true)
+    )
+    .addIntegerOption((option) =>
+      option.setName("range").setDescription("Value range % (default: 30, e.g. 30 = ±30%)").setRequired(false)
+    ),
 ].map((cmd) => cmd.toJSON());
 
 const rest = new REST({ version: "10" }).setToken(process.env.DISCORD_TOKEN);

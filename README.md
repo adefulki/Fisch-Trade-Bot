@@ -24,6 +24,7 @@ That's it — all commands work immediately after inviting.
 | `/history` | Price chart + change history + stability analysis |
 | `/chart` | Quick price chart (standalone) |
 | `/compare` | Compare 2-5 items side by side (value, efficiency, stability) |
+| `/similar` | Find items within a value range (trade alternatives) |
 | `/top` | Top 100 items (sortable, paginated) |
 | `/roi` | Top items by Return on Investment (value ÷ Robux cost) |
 | `/liquidity` | Items ranked by how easy they are to sell |

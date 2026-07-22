@@ -7,6 +7,7 @@ const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentTyp
 const { getAdjustedValue } = require("../services/analyzer");
 const { forecastItem } = require("../services/forecast");
 const { formatVal, trendEmoji } = require("../utils/format");
+const { fetchTradingInsights, getCachedInsights } = require("../services/trading-insights");
 
 const PER_PAGE = 5;
 const MAX_ITEMS = 100;
@@ -20,6 +21,8 @@ const SORT_LABELS = {
   demand: "Demand",
   rising: "Rising Trend",
   dropping: "Dropping Trend",
+  wanted: "Most Wanted (Real Demand)",
+  hot: "Hot (Most Traded)",
 };
 
 /** Demand order for sorting (highest first) */
@@ -124,6 +127,27 @@ function sortItems(items, sortBy) {
       return filtered
         .filter((i) => i.trend === "Dropping")
         .sort((a, b) => (b.trueVal || 0) - (a.trueVal || 0));
+    case "wanted": {
+      const insights = getCachedInsights();
+      if (!insights || insights.mostWanted.length === 0) return filtered.slice(0, 20);
+      // Map most wanted items to their database entries
+      const wantedItems = insights.mostWanted.map((w) => {
+        const item = filtered.find((i) => i.name.toLowerCase() === w.name.toLowerCase());
+        if (item) return { ...item, wantedCount: w.count };
+        return null;
+      }).filter(Boolean);
+      return wantedItems.length > 0 ? wantedItems : filtered.slice(0, 20);
+    }
+    case "hot": {
+      const insights = getCachedInsights();
+      if (!insights || insights.mostTraded.length === 0) return filtered.slice(0, 20);
+      const hotItems = insights.mostTraded.map((t) => {
+        const item = filtered.find((i) => i.name.toLowerCase() === t.name.toLowerCase());
+        if (item) return { ...item, tradedCount: t.count };
+        return null;
+      }).filter(Boolean);
+      return hotItems.length > 0 ? hotItems : filtered.slice(0, 20);
+    }
     case "grade":
     default:
       return filtered.sort((a, b) => b.score - a.score);
@@ -139,6 +163,12 @@ async function execute(interaction, items) {
   await interaction.deferReply();
 
   const sortBy = interaction.options.getString("sort") || "grade";
+
+  // Fetch trading insights for demand/hot sorts
+  if (sortBy === "wanted" || sortBy === "hot") {
+    await fetchTradingInsights();
+  }
+
   const sorted = sortItems(items, sortBy).slice(0, MAX_ITEMS);
 
   if (sorted.length === 0) {
@@ -160,10 +190,16 @@ async function execute(interaction, items) {
     const lines = pageItems.map((item, i) => {
       const rank = start + i + 1;
       const medal = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : `**#${rank}**`;
+      let extraLine = "";
+      if (sortBy === "wanted" && item.wantedCount) {
+        extraLine = `\n> 🔥 Wanted by **${item.wantedCount.toLocaleString()}** traders`;
+      } else if (sortBy === "hot" && item.tradedCount) {
+        extraLine = `\n> 🔥 **${item.tradedCount.toLocaleString()}** trades this week`;
+      }
       return [
         `${medal} **${item.name}** — ${item.grade} (${item.score}/100)`,
         `> TrueVal: ${formatVal(item.trueVal)} | Trade Hub: ${formatVal(item.tradeHub)} | Proto: ${item.proto || "N/A"}`,
-        `> Demand: ${item.demand} | Trend: ${trendEmoji(item.trend)} ${item.trend} | Adj: ${formatVal(item.adjustedValue)}`,
+        `> Demand: ${item.demand} | Trend: ${trendEmoji(item.trend)} ${item.trend} | Adj: ${formatVal(item.adjustedValue)}${extraLine}`,
       ].join("\n");
     });
 

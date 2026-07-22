@@ -148,6 +148,17 @@ function analyzeStability(item, days = 14) {
     }
   }
 
+  // ─── 7. Trading Hub supply/demand mismatch ───
+  try {
+    const { getItemSupplyDemand } = require("./trading-insights");
+    const sd = getItemSupplyDemand(item.name);
+    if (sd.isOversupplied && (item.demand === "High" || item.demand === "Very High")) {
+      penaltyScore += 15;
+      flags.push("SUPPLY_MISMATCH");
+      warnings.push(`⚠️ Marked "${item.demand}" demand but oversupplied in Trading Hub (more sellers than buyers)`);
+    }
+  } catch (e) { /* trading insights not available */ }
+
   // ─── Calculate final score ───
   const score = Math.max(0, Math.min(100, 100 - penaltyScore));
 

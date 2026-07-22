@@ -10,6 +10,7 @@ const { getItemHistory, formatVal: histFormatVal } = require("../data/history");
 const { formatVal, trendEmoji } = require("../utils/format");
 const { buildValueChartUrl } = require("../services/chart");
 const { getStabilityBlock, getStabilityColor } = require("../services/stability");
+const { fetchTradingInsights, getItemSupplyDemand } = require("../services/trading-insights");
 
 /**
  * Handle the /value slash command interaction.
@@ -130,6 +131,19 @@ async function execute(interaction) {
         });
       }
     }
+  }
+
+  // Supply/Demand from Trading Hub (real trade data)
+  const supplyDemand = getItemSupplyDemand(item.name);
+  if (supplyDemand.wanted || supplyDemand.offered || supplyDemand.traded) {
+    let sdLines = [];
+    if (supplyDemand.wanted) sdLines.push(`🎯 Wanted: **${supplyDemand.wanted.toLocaleString()}**`);
+    if (supplyDemand.offered) sdLines.push(`📤 Offered: **${supplyDemand.offered.toLocaleString()}**`);
+    if (supplyDemand.traded) sdLines.push(`🔄 Traded: **${supplyDemand.traded.toLocaleString()}**/week`);
+    if (supplyDemand.ratio) sdLines.push(`📊 Want:Offer ratio: **${supplyDemand.ratio}**`);
+    if (supplyDemand.isOversupplied) sdLines.push(`⚠️ **Oversupplied** — many sellers, fewer buyers`);
+    if (supplyDemand.isUndersupplied) sdLines.push(`💎 **Undersupplied** — high demand, low offers`);
+    embed.addFields({ name: "📈 Trading Hub Activity", value: sdLines.join("\n"), inline: false });
   }
 
   if (stabilityBlock) {

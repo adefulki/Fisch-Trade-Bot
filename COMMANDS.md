@@ -104,6 +104,25 @@ Show items ranked by how easy they are to sell.
 
 ---
 
+### /similar
+Find items within a value range of a target item. Shows trade alternatives — fair swaps, cheaper options, and pricier upgrades.
+
+**Usage:**
+```
+/similar item: Evangeline              → ±30% range (default)
+/similar item: Scarwing range: 15      → ±15% (tighter, fewer results)
+/similar item: c3 range: 50            → ±50% (wider, more results)
+```
+
+**Shows:**
+- Items sorted by closest value match
+- 🟢 Fair swap (±10%), 🟡 Close (±15%), 🟠 Needs adds
+- Trade hints: "fair 1:1 swap", "they'd need to add", "you'd need to add"
+- Summary: how many fair swaps, cheaper, and pricier alternatives
+- Demand, trend, and proto for each item
+
+---
+
 ### /market
 Show market analytics: top valued items, rising/dropping trends, biggest gainers/losers, most volatile items, and best flip opportunities.
 
